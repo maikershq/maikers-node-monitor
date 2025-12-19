@@ -1,26 +1,58 @@
-import type { NodeMetrics, TimeSeriesPoint } from "./types";
+import type { NodeMetrics, TimeSeriesPoint, NodeStatus } from "./types";
 
 const TEE_PLATFORMS = ["IntelTdx", "AmdSevSnp", "Simulated"] as const;
 
-function randomId(): string {
-  return Math.random().toString(36).substring(2, 10);
+const PEER_ID_POOL: string[] = [];
+const NODE_ID_POOL: string[] = [];
+
+function getOrCreatePeerId(index: number): string {
+  if (!PEER_ID_POOL[index]) {
+    const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
+    let id = "";
+    for (let i = 0; i < 16; i++) {
+      id += chars[Math.floor(Math.random() * chars.length)];
+    }
+    PEER_ID_POOL[index] = `12D3KooW${id}`;
+  }
+  return PEER_ID_POOL[index];
 }
 
-function generateCells(count: number) {
-  return Array.from({ length: count }, (_, i) => ({
-    id: i,
-    signal: Math.floor(Math.random() * 100),
+function getOrCreateNodeId(index: number): string {
+  if (!NODE_ID_POOL[index]) {
+    NODE_ID_POOL[index] = `node-${index.toString().padStart(3, "0")}`;
+  }
+  return NODE_ID_POOL[index];
+}
+
+const CELL_CACHE = new Map<number, { id: number }[]>();
+
+function getCellTemplate(cellCount: number): { id: number }[] {
+  if (!CELL_CACHE.has(cellCount)) {
+    CELL_CACHE.set(
+      cellCount,
+      Array.from({ length: cellCount }, (_, i) => ({ id: i })),
+    );
+  }
+  return CELL_CACHE.get(cellCount)!;
+}
+
+function generateCells(
+  count: number,
+): { id: number; signal: number; queueDepth: number }[] {
+  const template = getCellTemplate(count);
+  return template.map((c) => ({
+    id: c.id,
+    signal: Math.random() * 100,
     queueDepth: Math.floor(Math.random() * 20),
   }));
 }
 
-export function generateMockNode(index: number): NodeMetrics {
-  const cellCount = 64;
+export function generateMockNode(index: number, cellCount = 16): NodeMetrics {
   const platform = TEE_PLATFORMS[index % 3];
 
   return {
-    nodeId: `node-${index.toString().padStart(3, "0")}`,
-    peerId: `12D3KooW${randomId()}${randomId()}`,
+    nodeId: getOrCreateNodeId(index),
+    peerId: getOrCreatePeerId(index),
     teePlatform: platform,
     teeAttested: Math.random() > 0.1,
     uptime: Math.floor(Math.random() * 86400 * 7),
@@ -41,16 +73,22 @@ export function generateMockNode(index: number): NodeMetrics {
     tasksProcessed: Math.floor(Math.random() * 100000),
     tasksFailed: Math.floor(Math.random() * 100),
     fuelConsumed: Math.floor(Math.random() * 1000000),
-    peers: Array.from(
-      { length: Math.floor(Math.random() * 5) + 1 },
-      () => `12D3KooW${randomId()}`,
+    peers: Array.from({ length: Math.floor(Math.random() * 5) + 1 }, (_, i) =>
+      getOrCreatePeerId((index + i + 1) % 1000),
     ),
     lastUpdate: Date.now(),
+    status: "healthy",
+    packetLoss: 0,
   };
 }
 
-export function generateMockNodes(count: number): NodeMetrics[] {
-  return Array.from({ length: count }, (_, i) => generateMockNode(i));
+export function generateMockNodes(
+  count: number,
+  cellCount = 16,
+): NodeMetrics[] {
+  return Array.from({ length: count }, (_, i) =>
+    generateMockNode(i, cellCount),
+  );
 }
 
 export function generateTimeSeries(points: number): TimeSeriesPoint[] {
@@ -64,17 +102,140 @@ export function generateTimeSeries(points: number): TimeSeriesPoint[] {
   }));
 }
 
-export function updateNodeMetrics(node: NodeMetrics): NodeMetrics {
-  return {
-    ...node,
-    cells: node.cells.map((c) => ({
+interface NetworkIssueConfig {
+  enabled: boolean;
+  offlineChance: number;
+  degradedChance: number;
+  latencySpikeChance: number;
+  packetLossChance: number;
+}
+
+const DEFAULT_NETWORK_ISSUES: NetworkIssueConfig = {
+  enabled: true,
+  offlineChance: 0.02,
+  degradedChance: 0.05,
+  latencySpikeChance: 0.08,
+  packetLossChance: 0.03,
+};
+
+function simulateNetworkStatus(
+  currentStatus: NodeStatus,
+  config: NetworkIssueConfig,
+): { status: NodeStatus; packetLoss: number } {
+  if (!config.enabled) return { status: "healthy", packetLoss: 0 };
+
+  const roll = Math.random();
+
+  if (currentStatus === "offline") {
+    if (roll < 0.3) return { status: "healthy", packetLoss: 0 };
+    if (roll < 0.5)
+      return { status: "degraded", packetLoss: Math.random() * 0.3 };
+    return { status: "offline", packetLoss: 1 };
+  }
+
+  if (currentStatus === "degraded") {
+    if (roll < 0.4) return { status: "healthy", packetLoss: 0 };
+    if (roll < 0.1) return { status: "offline", packetLoss: 1 };
+    return { status: "degraded", packetLoss: Math.random() * 0.5 };
+  }
+
+  if (roll < config.offlineChance) {
+    return { status: "offline", packetLoss: 1 };
+  }
+  if (roll < config.offlineChance + config.degradedChance) {
+    return { status: "degraded", packetLoss: 0.1 + Math.random() * 0.4 };
+  }
+  if (
+    roll <
+    config.offlineChance + config.degradedChance + config.packetLossChance
+  ) {
+    return { status: "healthy", packetLoss: Math.random() * 0.1 };
+  }
+
+  return { status: "healthy", packetLoss: 0 };
+}
+
+function applyLatencySpike(
+  latency: NodeMetrics["latency"],
+  config: NetworkIssueConfig,
+): NodeMetrics["latency"] {
+  if (!config.enabled) return latency;
+
+  if (Math.random() < config.latencySpikeChance) {
+    const spikeFactor = 2 + Math.random() * 8;
+    return {
+      ...latency,
+      p50: latency.p50 * spikeFactor,
+      p95: latency.p95 * spikeFactor,
+      p99: latency.p99 * spikeFactor,
+      avg: latency.avg * spikeFactor,
+    };
+  }
+
+  return latency;
+}
+
+export function updateNodeMetrics(
+  node: NodeMetrics,
+  networkConfig: NetworkIssueConfig = DEFAULT_NETWORK_ISSUES,
+): NodeMetrics {
+  const { status, packetLoss } = simulateNetworkStatus(
+    node.status,
+    networkConfig,
+  );
+
+  if (status === "offline") {
+    return {
+      ...node,
+      status: "offline",
+      packetLoss: 1,
+      throughput: 0,
+      workers: { ...node.workers, active: 0 },
+      lastUpdate: Date.now(),
+    };
+  }
+
+  const throughputMultiplier =
+    status === "degraded" ? 0.3 + Math.random() * 0.4 : 1;
+  const latencyMultiplier = status === "degraded" ? 1.5 + Math.random() * 2 : 1;
+
+  const baseLatency = {
+    p50:
+      Math.max(1, node.latency.p50 + (Math.random() - 0.5) * 5) *
+      latencyMultiplier,
+    p95:
+      Math.max(10, node.latency.p95 + (Math.random() - 0.5) * 10) *
+      latencyMultiplier,
+    p99:
+      Math.max(20, node.latency.p99 + (Math.random() - 0.5) * 20) *
+      latencyMultiplier,
+    avg: node.latency.avg * latencyMultiplier,
+    samples: node.latency.samples,
+  };
+
+  const latency = applyLatencySpike(baseLatency, networkConfig);
+
+  const cellUpdateCount = Math.min(8, node.cells.length);
+  const cellsToUpdate = new Set<number>();
+  while (cellsToUpdate.size < cellUpdateCount) {
+    cellsToUpdate.add(Math.floor(Math.random() * node.cells.length));
+  }
+
+  const cells = node.cells.map((c, i) => {
+    if (!cellsToUpdate.has(i)) return c;
+    return {
       ...c,
-      signal: Math.max(0, Math.min(100, c.signal + (Math.random() - 0.5) * 10)),
+      signal: Math.max(0, Math.min(100, c.signal + (Math.random() - 0.5) * 15)),
       queueDepth: Math.max(
         0,
         c.queueDepth + Math.floor((Math.random() - 0.5) * 4),
       ),
-    })),
+    };
+  });
+
+  return {
+    ...node,
+    cells,
     workers: {
       ...node.workers,
       active: Math.max(
@@ -85,17 +246,28 @@ export function updateNodeMetrics(node: NodeMetrics): NodeMetrics {
         ),
       ),
     },
-    latency: {
-      ...node.latency,
-      p50: Math.max(1, node.latency.p50 + (Math.random() - 0.5) * 5),
-      p95: Math.max(10, node.latency.p95 + (Math.random() - 0.5) * 10),
-      p99: Math.max(20, node.latency.p99 + (Math.random() - 0.5) * 20),
-    },
+    latency,
     throughput: Math.max(
       0,
-      node.throughput + Math.floor((Math.random() - 0.5) * 50),
+      Math.floor(
+        (node.throughput + (Math.random() - 0.5) * 50) * throughputMultiplier,
+      ),
     ),
-    tasksProcessed: node.tasksProcessed + Math.floor(Math.random() * 10),
+    tasksProcessed:
+      node.tasksProcessed +
+      Math.floor(Math.random() * 10 * throughputMultiplier),
+    status,
+    packetLoss,
     lastUpdate: Date.now(),
   };
 }
+
+export function batchUpdateNodes(
+  nodes: NodeMetrics[],
+  networkConfig?: NetworkIssueConfig,
+): NodeMetrics[] {
+  return nodes.map((node) => updateNodeMetrics(node, networkConfig));
+}
+
+export { DEFAULT_NETWORK_ISSUES };
+export type { NetworkIssueConfig };

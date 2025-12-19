@@ -1,3 +1,5 @@
+export type NodeStatus = "healthy" | "degraded" | "offline";
+
 export interface NodeMetrics {
   nodeId: string;
   peerId: string;
@@ -13,6 +15,8 @@ export interface NodeMetrics {
   fuelConsumed: number;
   peers: string[];
   lastUpdate: number;
+  status: NodeStatus;
+  packetLoss: number;
 }
 
 export interface CellMetrics {
