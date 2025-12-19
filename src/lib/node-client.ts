@@ -41,15 +41,17 @@ export class NodeDiscovery {
       (_, i) => SCAN_PORT_START + i,
     );
 
-    const checks = ports.flatMap((port) => [
-      this.checkPort(`http://localhost:${port}`),
-      this.checkPort(`http://127.0.0.1:${port}`),
-    ]);
-
-    await Promise.allSettled(checks);
+    await Promise.allSettled(ports.map((port) => this.scanPort(port)));
   }
 
-  private async checkPort(endpoint: string): Promise<void> {
+  private async scanPort(port: number) {
+    // Try 127.0.0.1 first (more reliable/specific than localhost)
+    if (await this.checkPort(`http://127.0.0.1:${port}`)) return;
+    // Fallback to localhost if 127.0.0.1 didn't respond
+    await this.checkPort(`http://localhost:${port}`);
+  }
+
+  private async checkPort(endpoint: string): Promise<boolean> {
     try {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), SCAN_TIMEOUT_MS);
@@ -62,10 +64,12 @@ export class NodeDiscovery {
 
       if (response.ok) {
         this.addEndpoint(endpoint);
+        return true;
       }
     } catch {
       // Port not responding
     }
+    return false;
   }
 
   async discoverNodes(): Promise<NodeMetrics[]> {
@@ -75,29 +79,55 @@ export class NodeDiscovery {
     );
 
     const uniqueNodes = new Map<string, NodeMetrics>();
+    const nodeIdToEndpoint = new Map<string, string>();
 
     results.forEach((result, index) => {
       const endpoint = endpoints[index];
 
       if (result.status === "fulfilled" && result.value) {
         const node = result.value;
-        // Deduplicate nodes by ID
-        if (!uniqueNodes.has(node.nodeId)) {
-          uniqueNodes.set(node.nodeId, node);
-        }
 
-        this.connections.set(endpoint, {
-          endpoint,
-          nodeId: node.nodeId,
-          connected: true,
-          lastSeen: Date.now(),
-        });
+        // Auto-cleanup duplicates (e.g. localhost vs 127.0.0.1 for same node)
+        if (nodeIdToEndpoint.has(node.nodeId)) {
+          const existingEndpoint = nodeIdToEndpoint.get(node.nodeId)!;
+          let toRemove = endpoint;
+          let toKeep = existingEndpoint;
+
+          // Prefer 127.0.0.1
+          if (
+            endpoint.includes("127.0.0.1") &&
+            existingEndpoint.includes("localhost")
+          ) {
+            toKeep = endpoint;
+            toRemove = existingEndpoint;
+          }
+
+          this.removeEndpoint(toRemove);
+          nodeIdToEndpoint.set(node.nodeId, toKeep);
+
+          // Update connection for the kept endpoint
+          this.connections.set(toKeep, {
+            endpoint: toKeep,
+            nodeId: node.nodeId,
+            connected: true,
+            lastSeen: Date.now(),
+          });
+        } else {
+          nodeIdToEndpoint.set(node.nodeId, endpoint);
+          uniqueNodes.set(node.nodeId, node);
+
+          this.connections.set(endpoint, {
+            endpoint,
+            nodeId: node.nodeId,
+            connected: true,
+            lastSeen: Date.now(),
+          });
+        }
       } else {
         const existing = this.connections.get(endpoint);
         if (existing) {
           existing.connected = false;
         } else {
-          // Should be covered by addEndpoint, but just in case
           this.connections.set(endpoint, {
             endpoint,
             nodeId: "unreachable",
