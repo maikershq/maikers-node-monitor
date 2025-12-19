@@ -266,7 +266,21 @@ export function batchUpdateNodes(
   nodes: NodeMetrics[],
   networkConfig?: NetworkIssueConfig,
 ): NodeMetrics[] {
-  return nodes.map((node) => updateNodeMetrics(node, networkConfig));
+  // Performance optimization: only update ~20% of nodes per tick + all visible nodes (approximated by first 20)
+  // + any offline/degraded nodes to ensure they recover
+  const updateThreshold = 0.2;
+
+  return nodes.map((node, index) => {
+    // Always update first 20 (likely visible) and unhealthy nodes
+    if (
+      index < 20 ||
+      node.status !== "healthy" ||
+      Math.random() < updateThreshold
+    ) {
+      return updateNodeMetrics(node, networkConfig);
+    }
+    return node;
+  });
 }
 
 export { DEFAULT_NETWORK_ISSUES };

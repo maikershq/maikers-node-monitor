@@ -161,8 +161,8 @@ export function Dashboard() {
                   <input
                     type="range"
                     min="10"
-                    max="500"
-                    step="10"
+                    max="2000"
+                    step="50"
                     value={nodeCount}
                     onChange={(e) =>
                       handleNodeCountChange(Number(e.target.value))
@@ -171,9 +171,9 @@ export function Dashboard() {
                   />
                   <div className="flex justify-between text-[10px] text-zinc-600 mt-1">
                     <span>10</span>
-                    <span>100</span>
-                    <span>250</span>
                     <span>500</span>
+                    <span>1000</span>
+                    <span>2000</span>
                   </div>
                 </div>
 

@@ -42,18 +42,22 @@ export function VirtualizedNodeGrid({
 
   const handleScroll = useCallback(() => {
     if (!containerRef.current) return;
-    const scrollTop = window.scrollY;
-    const viewportHeight = window.innerHeight;
-    const containerTop = containerRef.current.offsetTop;
-    const relativeScroll = Math.max(0, scrollTop - containerTop);
 
-    const startRow = Math.floor(relativeScroll / rowHeight);
-    const visibleRows = Math.ceil(viewportHeight / rowHeight) + 2;
-    const endRow = Math.min(totalRows, startRow + visibleRows);
+    requestAnimationFrame(() => {
+      if (!containerRef.current) return;
+      const scrollTop = window.scrollY;
+      const viewportHeight = window.innerHeight;
+      const containerTop = containerRef.current.offsetTop;
+      const relativeScroll = Math.max(0, scrollTop - containerTop);
 
-    setVisibleRange({
-      start: startRow * columns,
-      end: Math.min(nodes.length, endRow * columns),
+      const startRow = Math.floor(relativeScroll / rowHeight);
+      const visibleRows = Math.ceil(viewportHeight / rowHeight) + 2;
+      const endRow = Math.min(totalRows, startRow + visibleRows);
+
+      setVisibleRange({
+        start: startRow * columns,
+        end: Math.min(nodes.length, endRow * columns),
+      });
     });
   }, [rowHeight, totalRows, columns, nodes.length]);
 
