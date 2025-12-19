@@ -1,73 +1,60 @@
-# Maikers Cellular Stigmergy Monitor
+# Cellular Stigmergy Monitor
 
 Real-time monitoring dashboard for the Maikers Cellular Stigmergy Network.
 
 ## Features
 
-- 📊 **Real-time Metrics** — Throughput, latency P50/P95/P99, worker utilization
-- 🔒 **TEE Status** — Node attestation status (Intel TDX, AMD SEV)
-- 🧠 **Cell Fabric Visualization** — Live view of cell signal/load distribution
-- 📈 **Time Series Charts** — Throughput and latency trends
-- 🌐 **Multi-Node View** — Monitor entire network at a glance
+- **Live Mode**: Discovers and monitors real nodes via HTTP metrics endpoints
+- **Simulation Mode**: Generates mock data for testing/demo purposes
+- **Real-time Charts**: Throughput and latency visualization
+- **Node Cards**: Individual node status with TEE attestation info
+- **Endpoint Management**: Add/remove node endpoints dynamically
 
-## Quick Start
+## Getting Started
 
 ```bash
-# Install
 pnpm install
-
-# Development
 pnpm dev
-
-# Build
-pnpm build
 ```
 
-Open [http://localhost:3000](http://localhost:3000)
+Open [http://localhost:3000](http://localhost:3000).
 
-## Architecture
+## Connecting to Nodes
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    MONITOR DASHBOARD                         │
-├─────────────────────────────────────────────────────────────┤
-│  ┌──────────────────────────────────────────────────────┐  │
-│  │  NETWORK STATS: Nodes | Throughput | Latency | TEE   │  │
-│  └──────────────────────────────────────────────────────┘  │
-│  ┌──────────────────────┐  ┌──────────────────────────┐   │
-│  │  THROUGHPUT CHART    │  │  LATENCY CHART           │   │
-│  │  [Area Graph]        │  │  [Line Graph P50/P99]    │   │
-│  └──────────────────────┘  └──────────────────────────┘   │
-│  ┌──────────────────────────────────────────────────────┐  │
-│  │  NODE GRID                                           │  │
-│  │  ┌─────────┐ ┌─────────┐ ┌─────────┐                │  │
-│  │  │ Node 0  │ │ Node 1  │ │ Node 2  │ ...            │  │
-│  │  │[Fabric] │ │[Fabric] │ │[Fabric] │                │  │
-│  │  │ Metrics │ │ Metrics │ │ Metrics │                │  │
-│  │  └─────────┘ └─────────┘ └─────────┘                │  │
-│  └──────────────────────────────────────────────────────┘  │
-└─────────────────────────────────────────────────────────────┘
+The monitor connects to nodes via HTTP on port 8080 by default. Ensure nodes are running with the HTTP metrics server enabled.
+
+Default endpoints:
+- `http://localhost:8080`
+- `http://localhost:8081`
+- `http://localhost:8082`
+
+Add custom endpoints via the Settings panel in Live mode.
+
+## Node Metrics API
+
+Nodes expose a `/metrics` endpoint returning:
+
+```json
+{
+  "nodeId": "abc12345",
+  "peerId": "12D3KooW...",
+  "teePlatform": "IntelTDX",
+  "teeAttested": true,
+  "uptime": 3600,
+  "cells": [{ "id": 0, "signal": 45, "tasks": 10 }],
+  "workers": { "active": 20, "total": 20, "max": 10000 },
+  "latency": { "p50": 5.2, "p95": 12.1, "p99": 25.3, "avg": 6.8, "samples": 1000 },
+  "throughput": 1500,
+  "tasksProcessed": 50000,
+  "tasksFailed": 12,
+  "fuelConsumed": 1000000,
+  "peers": []
+}
 ```
 
 ## Tech Stack
 
-- **Framework**: Next.js 16 + React 19
-- **Styling**: Tailwind CSS
-- **Charts**: Recharts
-- **Icons**: Lucide React
-
-## Connecting to Real Nodes
-
-Currently uses mock data. To connect to real nodes:
-
-1. Add WebSocket endpoint to nodes
-2. Update `src/lib/mock-data.ts` → `src/lib/node-client.ts`
-3. Use `useEffect` with WebSocket subscription
-
-## Related
-
-- [maikers-cellular-stigmergy-node](https://github.com/maikershq/maikers-cellular-stigmergy-node) — Rust node implementation
-
----
-
-**Built by [maikers - creators of realities](https://maikers.com)**
+- Next.js 15
+- Tailwind CSS
+- Recharts
+- Zod
