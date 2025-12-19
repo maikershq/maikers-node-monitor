@@ -1,26 +1,54 @@
 "use client";
 
+import { memo } from "react";
 import { twMerge } from "tailwind-merge";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { CellFabric } from "./cell-fabric";
 import { formatLatency, formatNumber } from "@/lib/utils";
-import type { NodeMetrics } from "@/lib/types";
-import { Shield, ShieldCheck, Activity, Clock, Cpu } from "lucide-react";
+import type { NodeMetrics, NodeStatus } from "@/lib/types";
+import {
+  Shield,
+  ShieldCheck,
+  Activity,
+  Clock,
+  Cpu,
+  WifiOff,
+  AlertTriangle,
+} from "lucide-react";
 
 interface NodeCardProps {
   node: NodeMetrics;
   className?: string;
 }
 
-export function NodeCard({ node, className }: NodeCardProps) {
+function getStatusIndicator(status: NodeStatus) {
+  switch (status) {
+    case "offline":
+      return { color: "bg-red-500", icon: WifiOff, label: "Offline" };
+    case "degraded":
+      return {
+        color: "bg-amber-500 animate-pulse",
+        icon: AlertTriangle,
+        label: "Degraded",
+      };
+    default:
+      return { color: "bg-cyan-400", icon: null, label: "Healthy" };
+  }
+}
+
+function NodeCardComponent({ node, className }: NodeCardProps) {
   const avgSignal =
     node.cells.reduce((s, c) => s + c.signal, 0) / node.cells.length;
   const uptimeHours = Math.floor(node.uptime / 3600);
+  const statusInfo = getStatusIndicator(node.status);
+  const StatusIcon = statusInfo.icon;
 
   return (
     <Card
       className={twMerge(
         "monitor-card overflow-hidden transition-all duration-300",
+        node.status === "offline" && "opacity-50 grayscale",
+        node.status === "degraded" && "ring-1 ring-amber-500/30",
         className,
       )}
     >
@@ -28,12 +56,12 @@ export function NodeCard({ node, className }: NodeCardProps) {
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2 text-base">
             <span
-              className={twMerge(
-                "w-2 h-2 rounded-full",
-                node.teeAttested ? "bg-cyan-400" : "bg-amber-400",
-              )}
+              className={twMerge("w-2 h-2 rounded-full", statusInfo.color)}
             />
             {node.nodeId}
+            {StatusIcon && (
+              <StatusIcon className="w-3.5 h-3.5 text-amber-400" />
+            )}
           </CardTitle>
           <div className="flex items-center gap-1.5">
             {node.teeAttested ? (
@@ -46,9 +74,16 @@ export function NodeCard({ node, className }: NodeCardProps) {
             </span>
           </div>
         </div>
-        <p className="text-[10px] text-zinc-600 font-mono truncate mt-1">
-          {node.peerId}
-        </p>
+        <div className="flex items-center justify-between mt-1">
+          <p className="text-[10px] text-zinc-600 font-mono truncate flex-1">
+            {node.peerId}
+          </p>
+          {node.packetLoss > 0 && node.status !== "offline" && (
+            <span className="text-[9px] text-red-400 ml-2">
+              {Math.round(node.packetLoss * 100)}% loss
+            </span>
+          )}
+        </div>
       </CardHeader>
       <CardContent className="space-y-4 pt-0">
         <CellFabric cells={node.cells} className="h-20" />
@@ -110,3 +145,5 @@ export function NodeCard({ node, className }: NodeCardProps) {
     </Card>
   );
 }
+
+export const NodeCard = memo(NodeCardComponent);
