@@ -1,8 +1,9 @@
 "use client";
 
+import { twMerge } from "tailwind-merge";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { CellFabric } from "./cell-fabric";
-import { cn, formatLatency, formatNumber } from "@/lib/utils";
+import { formatLatency, formatNumber } from "@/lib/utils";
 import type { NodeMetrics } from "@/lib/types";
 import { Shield, ShieldCheck, Activity, Clock, Cpu } from "lucide-react";
 
@@ -17,66 +18,71 @@ export function NodeCard({ node, className }: NodeCardProps) {
   const uptimeHours = Math.floor(node.uptime / 3600);
 
   return (
-    <Card className={cn("overflow-hidden", className)}>
-      <CardHeader className="pb-2">
+    <Card
+      className={twMerge(
+        "monitor-card overflow-hidden transition-all duration-300",
+        className,
+      )}
+    >
+      <CardHeader className="pb-3 pt-4 px-5 border-b-0">
         <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2 text-base">
             <span
-              className={cn(
+              className={twMerge(
                 "w-2 h-2 rounded-full",
-                node.teeAttested ? "bg-emerald-500" : "bg-amber-500",
+                node.teeAttested ? "bg-cyan-400" : "bg-amber-400",
               )}
             />
             {node.nodeId}
           </CardTitle>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1.5">
             {node.teeAttested ? (
-              <ShieldCheck className="w-4 h-4 text-emerald-500" />
+              <ShieldCheck className="w-4 h-4 text-cyan-400" />
             ) : (
-              <Shield className="w-4 h-4 text-amber-500" />
+              <Shield className="w-4 h-4 text-amber-400" />
             )}
-            <span className="text-[10px] text-zinc-500">
+            <span className="text-[10px] text-zinc-500 font-medium">
               {node.teePlatform}
             </span>
           </div>
         </div>
-        <p className="text-[10px] text-zinc-600 font-mono truncate">
+        <p className="text-[10px] text-zinc-600 font-mono truncate mt-1">
           {node.peerId}
         </p>
       </CardHeader>
-      <CardContent className="space-y-3">
-        <CellFabric cells={node.cells} className="h-24" />
+      <CardContent className="space-y-4 pt-0">
+        <CellFabric cells={node.cells} className="h-20" />
 
         <div className="grid grid-cols-4 gap-2 text-center">
           <div>
-            <p className="text-[10px] text-zinc-500">Throughput</p>
-            <p className="text-sm font-bold text-white">
+            <p className="text-[10px] text-zinc-500 font-medium">Throughput</p>
+            <p className="text-sm font-heading font-bold text-white tabular-nums">
               {formatNumber(node.throughput)}
             </p>
             <p className="text-[9px] text-zinc-600">ops/s</p>
           </div>
           <div>
-            <p className="text-[10px] text-zinc-500">Workers</p>
-            <p className="text-sm font-bold text-indigo-400">
+            <p className="text-[10px] text-zinc-500 font-medium">Workers</p>
+            <p className="text-sm font-heading font-bold text-cyan-400 tabular-nums">
               {node.workers.active}/{node.workers.total}
             </p>
           </div>
           <div>
-            <p className="text-[10px] text-zinc-500">P99</p>
-            <p className="text-sm font-bold text-amber-400">
+            <p className="text-[10px] text-zinc-500 font-medium">P99</p>
+            <p className="text-sm font-heading font-bold text-amber-400 tabular-nums">
               {formatLatency(node.latency.p99)}
             </p>
           </div>
           <div>
-            <p className="text-[10px] text-zinc-500">Load</p>
+            <p className="text-[10px] text-zinc-500 font-medium">Load</p>
             <p
-              className={cn(
-                "text-sm font-bold",
+              className={twMerge(
+                "text-sm font-heading font-bold tabular-nums",
                 avgSignal > 80
                   ? "text-red-400"
                   : avgSignal > 50
                     ? "text-amber-400"
-                    : "text-emerald-400",
+                    : "text-cyan-400",
               )}
             >
               {avgSignal.toFixed(0)}%
@@ -84,18 +90,20 @@ export function NodeCard({ node, className }: NodeCardProps) {
           </div>
         </div>
 
-        <div className="flex items-center justify-between text-[10px] text-zinc-600 border-t border-zinc-800 pt-2">
+        <div className="flex items-center justify-between text-[10px] text-zinc-500 border-t border-zinc-800/50 pt-3">
           <div className="flex items-center gap-1">
             <Clock className="w-3 h-3" />
-            {uptimeHours}h
+            <span className="tabular-nums">{uptimeHours}h</span>
           </div>
           <div className="flex items-center gap-1">
             <Activity className="w-3 h-3" />
-            {formatNumber(node.tasksProcessed)} tasks
+            <span className="tabular-nums">
+              {formatNumber(node.tasksProcessed)}
+            </span>
           </div>
           <div className="flex items-center gap-1">
             <Cpu className="w-3 h-3" />
-            {node.peers.length} peers
+            <span>{node.peers.length} peers</span>
           </div>
         </div>
       </CardContent>

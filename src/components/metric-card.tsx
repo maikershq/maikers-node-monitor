@@ -1,4 +1,6 @@
-import { cn } from "@/lib/utils";
+"use client";
+
+import { twMerge } from "tailwind-merge";
 import { Card, CardContent } from "./ui/card";
 
 interface MetricCardProps {
@@ -19,18 +21,20 @@ export function MetricCard({
   className,
 }: MetricCardProps) {
   return (
-    <Card className={cn("", className)}>
+    <Card
+      className={twMerge("monitor-card transition-all duration-300", className)}
+    >
       <CardContent className="p-4">
         <div className="flex items-start justify-between">
           <div>
-            <p className="text-[10px] uppercase tracking-wider text-zinc-500">
+            <p className="text-[10px] uppercase tracking-wider text-zinc-500 font-medium">
               {label}
             </p>
             <p
-              className={cn(
-                "text-2xl font-bold mt-1",
-                trend === "up" && "text-emerald-500",
-                trend === "down" && "text-red-500",
+              className={twMerge(
+                "text-2xl font-heading font-bold mt-1 tabular-nums",
+                trend === "up" && "text-cyan-400",
+                trend === "down" && "text-red-400",
                 !trend && "text-white",
               )}
             >

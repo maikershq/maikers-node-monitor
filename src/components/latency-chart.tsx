@@ -35,10 +35,11 @@ export function LatencyChart({ data }: LatencyChartProps) {
         <YAxis stroke="#52525b" fontSize={10} />
         <Tooltip
           contentStyle={{
-            backgroundColor: "#18181b",
-            border: "1px solid #27272a",
+            backgroundColor: "#181818",
+            border: "1px solid rgba(255, 255, 255, 0.1)",
             borderRadius: "8px",
             fontSize: "12px",
+            boxShadow: "0 8px 32px rgba(0, 0, 0, 0.4)",
           }}
           labelFormatter={(ts) => new Date(ts as number).toLocaleTimeString()}
         />
@@ -46,7 +47,7 @@ export function LatencyChart({ data }: LatencyChartProps) {
         <Line
           type="monotone"
           dataKey="latencyP50"
-          stroke="#10b981"
+          stroke="#06b6d4"
           strokeWidth={2}
           dot={false}
           name="P50"
@@ -54,7 +55,7 @@ export function LatencyChart({ data }: LatencyChartProps) {
         <Line
           type="monotone"
           dataKey="latencyP99"
-          stroke="#ef4444"
+          stroke="#f59e0b"
           strokeWidth={2}
           dot={false}
           name="P99"

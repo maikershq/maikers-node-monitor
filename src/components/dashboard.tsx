@@ -75,25 +75,27 @@ export function Dashboard() {
   }, [nodes]);
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100 p-4">
+    <div className="min-h-screen bg-[#111111] bg-pattern text-white p-4 md:p-6">
       {/* Header */}
-      <header className="flex items-center justify-between mb-6">
+      <header className="flex items-center justify-between mb-8 animate-in">
         <div className="flex items-center gap-3">
-          <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
+          <div className="w-2.5 h-2.5 bg-cyan-400 rounded-full animate-pulse" />
           <div>
-            <h1 className="text-xl font-bold">Cellular Stigmergy Monitor</h1>
+            <h1 className="text-xl md:text-2xl font-heading font-bold">
+              Cellular Stigmergy Monitor
+            </h1>
             <p className="text-xs text-zinc-500">
               Real-time network observability
             </p>
           </div>
         </div>
-        <div className="text-xs text-zinc-600 font-mono">
+        <div className="text-xs text-zinc-600 font-mono tabular-nums">
           {new Date().toLocaleTimeString()}
         </div>
       </header>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-8 animate-in">
         <MetricCard
           label="Nodes"
           value={stats.totalNodes}
@@ -132,29 +134,29 @@ export function Dashboard() {
       </div>
 
       {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
-        <Card>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-8 animate-in">
+        <Card className="monitor-card">
           <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2">
-              <Zap className="w-4 h-4 text-indigo-500" />
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Zap className="w-4 h-4 text-cyan-400" />
               Throughput
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-0">
             <div className="h-48">
               <ThroughputChart data={timeSeries} />
             </div>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="monitor-card">
           <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2">
-              <Clock className="w-4 h-4 text-emerald-500" />
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Clock className="w-4 h-4 text-teal-400" />
               Latency Distribution
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-0">
             <div className="h-48">
               <LatencyChart data={timeSeries} />
             </div>
@@ -163,8 +165,8 @@ export function Dashboard() {
       </div>
 
       {/* Nodes Grid */}
-      <div className="mb-4">
-        <h2 className="text-sm font-semibold text-zinc-400 mb-3 flex items-center gap-2">
+      <div className="animate-in">
+        <h2 className="text-sm font-heading font-semibold text-zinc-400 mb-4 flex items-center gap-2">
           <Server className="w-4 h-4" />
           TEE Node Pool
         </h2>
