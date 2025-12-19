@@ -2,7 +2,7 @@ import type { NodeMetrics } from "./types";
 
 const SCAN_PORT_START = 8080;
 const SCAN_PORT_END = 8099;
-const SCAN_TIMEOUT_MS = 500;
+const SCAN_TIMEOUT_MS = 1000;
 
 export interface NodeConnection {
   endpoint: string;
@@ -20,6 +20,14 @@ export class NodeDiscovery {
 
   addEndpoint(endpoint: string) {
     this.discoveredEndpoints.add(endpoint);
+    if (!this.connections.has(endpoint)) {
+      this.connections.set(endpoint, {
+        endpoint,
+        nodeId: "pending...",
+        connected: false,
+        lastSeen: 0,
+      });
+    }
   }
 
   removeEndpoint(endpoint: string) {
@@ -33,27 +41,31 @@ export class NodeDiscovery {
       (_, i) => SCAN_PORT_START + i,
     );
 
-    const checks = ports.map(async (port) => {
-      const endpoint = `http://localhost:${port}`;
-      try {
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), SCAN_TIMEOUT_MS);
-
-        const response = await fetch(`${endpoint}/health`, {
-          signal: controller.signal,
-        });
-
-        clearTimeout(timeout);
-
-        if (response.ok) {
-          this.discoveredEndpoints.add(endpoint);
-        }
-      } catch {
-        // Port not responding
-      }
-    });
+    const checks = ports.flatMap((port) => [
+      this.checkPort(`http://localhost:${port}`),
+      this.checkPort(`http://127.0.0.1:${port}`),
+    ]);
 
     await Promise.allSettled(checks);
+  }
+
+  private async checkPort(endpoint: string): Promise<void> {
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), SCAN_TIMEOUT_MS);
+
+      const response = await fetch(`${endpoint}/health`, {
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeout);
+
+      if (response.ok) {
+        this.addEndpoint(endpoint);
+      }
+    } catch {
+      // Port not responding
+    }
   }
 
   async discoverNodes(): Promise<NodeMetrics[]> {
@@ -79,6 +91,14 @@ export class NodeDiscovery {
         const existing = this.connections.get(endpoint);
         if (existing) {
           existing.connected = false;
+        } else {
+          // Should be covered by addEndpoint, but just in case
+          this.connections.set(endpoint, {
+            endpoint,
+            nodeId: "unreachable",
+            connected: false,
+            lastSeen: 0,
+          });
         }
       }
     });
@@ -104,7 +124,8 @@ export class NodeDiscovery {
 
       const data = await response.json();
       return this.parseNodeMetrics(data, endpoint);
-    } catch {
+    } catch (e) {
+      console.error(`Failed to fetch metrics from ${endpoint}:`, e);
       return null;
     }
   }
