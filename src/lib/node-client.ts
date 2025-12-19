@@ -129,8 +129,8 @@ export class NodeDiscovery {
 
       const data = await response.json();
       return this.parseNodeMetrics(data, endpoint);
-    } catch (e) {
-      console.error(`Failed to fetch metrics from ${endpoint}:`, e);
+    } catch {
+      // Failed to fetch metrics (node likely offline or starting up)
       return null;
     }
   }
