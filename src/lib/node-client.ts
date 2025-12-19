@@ -74,16 +74,21 @@ export class NodeDiscovery {
       endpoints.map((endpoint) => this.fetchNodeMetrics(endpoint)),
     );
 
-    const nodes: NodeMetrics[] = [];
+    const uniqueNodes = new Map<string, NodeMetrics>();
 
     results.forEach((result, index) => {
       const endpoint = endpoints[index];
 
       if (result.status === "fulfilled" && result.value) {
-        nodes.push(result.value);
+        const node = result.value;
+        // Deduplicate nodes by ID
+        if (!uniqueNodes.has(node.nodeId)) {
+          uniqueNodes.set(node.nodeId, node);
+        }
+
         this.connections.set(endpoint, {
           endpoint,
-          nodeId: result.value.nodeId,
+          nodeId: node.nodeId,
           connected: true,
           lastSeen: Date.now(),
         });
@@ -103,7 +108,7 @@ export class NodeDiscovery {
       }
     });
 
-    return nodes;
+    return Array.from(uniqueNodes.values());
   }
 
   private async fetchNodeMetrics(
