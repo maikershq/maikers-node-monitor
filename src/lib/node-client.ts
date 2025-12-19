@@ -138,6 +138,8 @@ export class NodeDiscovery {
       fuelConsumed: (raw.fuelConsumed as number) || 0,
       peers: (raw.peers as string[]) || [],
       lastUpdate: Date.now(),
+      status: "healthy",
+      packetLoss: 0,
     };
   }
 
