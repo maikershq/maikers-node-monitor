@@ -125,8 +125,12 @@ export function useNodes({
   useEffect(() => {
     if (mode !== "live") return;
 
+    setNodes([]);
+    nodesRef.current = [];
+    timeSeriesRef.current = [];
     setIsLoading(true);
-    setTimeSeries(generateTimeSeries(0));
+    setTimeSeries([]);
+    setError(null);
 
     nodeDiscovery.startPolling(pollingIntervalMs, (discoveredNodes) => {
       setNodes(discoveredNodes);
