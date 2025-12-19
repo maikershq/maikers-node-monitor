@@ -1,11 +1,13 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import type { NodeMetrics, TimeSeriesPoint } from "@/lib/types";
 import {
   generateMockNodes,
   generateTimeSeries,
-  updateNodeMetrics,
+  batchUpdateNodes,
+  NetworkIssueConfig,
+  DEFAULT_NETWORK_ISSUES,
 } from "@/lib/mock-data";
 import { nodeDiscovery, NodeConnection } from "@/lib/node-client";
 
@@ -16,6 +18,8 @@ interface UseNodesOptions {
   simulatedNodeCount?: number;
   pollingIntervalMs?: number;
   timeSeriesPoints?: number;
+  cellsPerNode?: number;
+  networkIssues?: NetworkIssueConfig;
 }
 
 interface UseNodesReturn {
@@ -27,84 +31,97 @@ interface UseNodesReturn {
   addEndpoint: (endpoint: string) => void;
   removeEndpoint: (endpoint: string) => void;
   refresh: () => Promise<void>;
+  setNodeCount: (count: number) => void;
+  setNetworkIssues: (config: NetworkIssueConfig) => void;
+  networkIssues: NetworkIssueConfig;
 }
 
 export function useNodes({
   mode,
-  simulatedNodeCount = 6,
-  pollingIntervalMs = 1000,
+  simulatedNodeCount = 50,
+  pollingIntervalMs = 500,
   timeSeriesPoints = 60,
+  cellsPerNode = 16,
+  networkIssues: initialNetworkIssues = DEFAULT_NETWORK_ISSUES,
 }: UseNodesOptions): UseNodesReturn {
   const [nodes, setNodes] = useState<NodeMetrics[]>([]);
   const [timeSeries, setTimeSeries] = useState<TimeSeriesPoint[]>([]);
   const [connections, setConnections] = useState<NodeConnection[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [nodeCount, setNodeCount] = useState(simulatedNodeCount);
+  const [networkIssues, setNetworkIssues] =
+    useState<NetworkIssueConfig>(initialNetworkIssues);
+
+  const nodesRef = useRef<NodeMetrics[]>([]);
+  const timeSeriesRef = useRef<TimeSeriesPoint[]>([]);
 
   const updateTimeSeries = useCallback(
     (currentNodes: NodeMetrics[]) => {
-      setTimeSeries((prev) => {
-        const totalThroughput = currentNodes.reduce(
-          (s, n) => s + n.throughput,
-          0,
-        );
-        const avgP50 =
-          currentNodes.length > 0
-            ? currentNodes.reduce((s, n) => s + n.latency.p50, 0) /
-              currentNodes.length
-            : 0;
-        const avgP99 =
-          currentNodes.length > 0
-            ? currentNodes.reduce((s, n) => s + n.latency.p99, 0) /
-              currentNodes.length
-            : 0;
-        const totalWorkers = currentNodes.reduce(
-          (s, n) => s + n.workers.active,
-          0,
-        );
+      const healthyNodes = currentNodes.filter((n) => n.status !== "offline");
+      const totalThroughput = healthyNodes.reduce(
+        (s, n) => s + n.throughput,
+        0,
+      );
+      const avgP50 =
+        healthyNodes.length > 0
+          ? healthyNodes.reduce((s, n) => s + n.latency.p50, 0) /
+            healthyNodes.length
+          : 0;
+      const avgP99 =
+        healthyNodes.length > 0
+          ? healthyNodes.reduce((s, n) => s + n.latency.p99, 0) /
+            healthyNodes.length
+          : 0;
+      const totalWorkers = healthyNodes.reduce(
+        (s, n) => s + n.workers.active,
+        0,
+      );
 
-        const newPoint: TimeSeriesPoint = {
-          timestamp: Date.now(),
-          throughput: totalThroughput,
-          latencyP50: avgP50,
-          latencyP99: avgP99,
-          activeWorkers: totalWorkers,
-        };
+      const newPoint: TimeSeriesPoint = {
+        timestamp: Date.now(),
+        throughput: totalThroughput,
+        latencyP50: avgP50,
+        latencyP99: avgP99,
+        activeWorkers: totalWorkers,
+      };
 
-        const updated = [...prev, newPoint];
-        return updated.slice(-timeSeriesPoints);
-      });
+      timeSeriesRef.current = [
+        ...timeSeriesRef.current.slice(-(timeSeriesPoints - 1)),
+        newPoint,
+      ];
+      setTimeSeries(timeSeriesRef.current);
     },
     [timeSeriesPoints],
   );
 
-  // Simulation mode
   useEffect(() => {
     if (mode !== "simulation") return;
 
-    setNodes(generateMockNodes(simulatedNodeCount));
+    const initialNodes = generateMockNodes(nodeCount, cellsPerNode);
+    nodesRef.current = initialNodes;
+    setNodes(initialNodes);
     setTimeSeries(generateTimeSeries(timeSeriesPoints));
     setIsLoading(false);
     setError(null);
 
     const interval = setInterval(() => {
-      setNodes((prev) => {
-        const updated = prev.map(updateNodeMetrics);
-        updateTimeSeries(updated);
-        return updated;
-      });
+      nodesRef.current = batchUpdateNodes(nodesRef.current, networkIssues);
+      setNodes(nodesRef.current);
+      updateTimeSeries(nodesRef.current);
     }, pollingIntervalMs);
 
     return () => clearInterval(interval);
   }, [
     mode,
-    simulatedNodeCount,
+    nodeCount,
     pollingIntervalMs,
     timeSeriesPoints,
+    cellsPerNode,
+    networkIssues,
     updateTimeSeries,
   ]);
 
-  // Live mode
   useEffect(() => {
     if (mode !== "live") return;
 
@@ -148,6 +165,10 @@ export function useNodes({
     }
   }, [mode]);
 
+  const handleSetNodeCount = useCallback((count: number) => {
+    setNodeCount(count);
+  }, []);
+
   return {
     nodes,
     timeSeries,
@@ -157,5 +178,8 @@ export function useNodes({
     addEndpoint,
     removeEndpoint,
     refresh,
+    setNodeCount: handleSetNodeCount,
+    setNetworkIssues,
+    networkIssues,
   };
 }
