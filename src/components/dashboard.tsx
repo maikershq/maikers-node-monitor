@@ -27,7 +27,7 @@ import {
 } from "lucide-react";
 
 export function Dashboard() {
-  const [mode, setMode] = useState<DataMode>("simulation");
+  const [mode, setMode] = useState<DataMode>("live");
   const [showSettings, setShowSettings] = useState(false);
   const [nodeCount, setNodeCountState] = useState(50);
 
