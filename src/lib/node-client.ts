@@ -1,11 +1,8 @@
 import type { NodeMetrics } from "./types";
 
-const DEFAULT_DISCOVERY_ENDPOINTS = [
-  "http://localhost:8080",
-  "http://localhost:8081",
-  "http://localhost:8082",
-  "http://localhost:8083",
-];
+const SCAN_PORT_START = 8080;
+const SCAN_PORT_END = 8099;
+const SCAN_TIMEOUT_MS = 500;
 
 export interface NodeConnection {
   endpoint: string;
@@ -15,35 +12,60 @@ export interface NodeConnection {
 }
 
 export class NodeDiscovery {
-  private endpoints: string[];
+  private discoveredEndpoints: Set<string> = new Set();
   private connections: Map<string, NodeConnection> = new Map();
   private pollingInterval: NodeJS.Timeout | null = null;
+  private scanInterval: NodeJS.Timeout | null = null;
   private onUpdate: ((nodes: NodeMetrics[]) => void) | null = null;
 
-  constructor(endpoints: string[] = DEFAULT_DISCOVERY_ENDPOINTS) {
-    this.endpoints = endpoints;
-  }
-
   addEndpoint(endpoint: string) {
-    if (!this.endpoints.includes(endpoint)) {
-      this.endpoints.push(endpoint);
-    }
+    this.discoveredEndpoints.add(endpoint);
   }
 
   removeEndpoint(endpoint: string) {
-    this.endpoints = this.endpoints.filter((e) => e !== endpoint);
+    this.discoveredEndpoints.delete(endpoint);
     this.connections.delete(endpoint);
   }
 
+  async scanForNodes(): Promise<void> {
+    const ports = Array.from(
+      { length: SCAN_PORT_END - SCAN_PORT_START + 1 },
+      (_, i) => SCAN_PORT_START + i,
+    );
+
+    const checks = ports.map(async (port) => {
+      const endpoint = `http://localhost:${port}`;
+      try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), SCAN_TIMEOUT_MS);
+
+        const response = await fetch(`${endpoint}/health`, {
+          signal: controller.signal,
+        });
+
+        clearTimeout(timeout);
+
+        if (response.ok) {
+          this.discoveredEndpoints.add(endpoint);
+        }
+      } catch {
+        // Port not responding
+      }
+    });
+
+    await Promise.allSettled(checks);
+  }
+
   async discoverNodes(): Promise<NodeMetrics[]> {
+    const endpoints = Array.from(this.discoveredEndpoints);
     const results = await Promise.allSettled(
-      this.endpoints.map((endpoint) => this.fetchNodeMetrics(endpoint)),
+      endpoints.map((endpoint) => this.fetchNodeMetrics(endpoint)),
     );
 
     const nodes: NodeMetrics[] = [];
 
     results.forEach((result, index) => {
-      const endpoint = this.endpoints[index];
+      const endpoint = endpoints[index];
 
       if (result.status === "fulfilled" && result.value) {
         nodes.push(result.value);
@@ -69,7 +91,7 @@ export class NodeDiscovery {
   ): Promise<NodeMetrics | null> {
     try {
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 5000);
+      const timeout = setTimeout(() => controller.abort(), 2000);
 
       const response = await fetch(`${endpoint}/metrics`, {
         signal: controller.signal,
@@ -122,18 +144,21 @@ export class NodeDiscovery {
   startPolling(intervalMs: number, onUpdate: (nodes: NodeMetrics[]) => void) {
     this.onUpdate = onUpdate;
 
-    if (this.pollingInterval) {
-      clearInterval(this.pollingInterval);
-    }
+    if (this.pollingInterval) clearInterval(this.pollingInterval);
+    if (this.scanInterval) clearInterval(this.scanInterval);
 
     const poll = async () => {
       const nodes = await this.discoverNodes();
-      if (this.onUpdate) {
-        this.onUpdate(nodes);
-      }
+      if (this.onUpdate) this.onUpdate(nodes);
     };
 
-    poll();
+    // Initial scan then poll
+    this.scanForNodes().then(poll);
+
+    // Re-scan for new nodes every 10 seconds
+    this.scanInterval = setInterval(() => this.scanForNodes(), 10000);
+
+    // Poll known nodes at requested interval
     this.pollingInterval = setInterval(poll, intervalMs);
   }
 
@@ -141,6 +166,10 @@ export class NodeDiscovery {
     if (this.pollingInterval) {
       clearInterval(this.pollingInterval);
       this.pollingInterval = null;
+    }
+    if (this.scanInterval) {
+      clearInterval(this.scanInterval);
+      this.scanInterval = null;
     }
     this.onUpdate = null;
   }
