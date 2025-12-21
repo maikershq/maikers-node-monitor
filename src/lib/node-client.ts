@@ -18,21 +18,31 @@ export class NodeDiscovery {
   private scanInterval: NodeJS.Timeout | null = null;
   private onUpdate: ((nodes: NodeMetrics[]) => void) | null = null;
 
-  addEndpoint(endpoint: string) {
-    this.discoveredEndpoints.add(endpoint);
-    if (!this.connections.has(endpoint)) {
-      this.connections.set(endpoint, {
-        endpoint,
-        nodeId: "pending...",
-        connected: false,
-        lastSeen: 0,
-      });
+  constructor() {
+    // Add default localhost ports
+    for (let port = SCAN_PORT_START; port <= SCAN_PORT_END; port++) {
+      // We don't add them to discoveredEndpoints yet, scanForNodes will validate them
+    }
+  }
+
+  async addEndpoint(endpoint: string) {
+    // Normalize endpoint (remove trailing slash)
+    const normalized = endpoint.replace(/\/$/, "");
+    
+    if (!this.discoveredEndpoints.has(normalized)) {
+      this.discoveredEndpoints.add(normalized);
+      // Try to connect immediately
+      await this.refreshNodes();
     }
   }
 
   removeEndpoint(endpoint: string) {
     this.discoveredEndpoints.delete(endpoint);
     this.connections.delete(endpoint);
+    // Notify update to remove it from UI
+    if (this.onUpdate) {
+      this.refreshNodes();
+    }
   }
 
   async scanForNodes(): Promise<void> {
@@ -41,35 +51,37 @@ export class NodeDiscovery {
       (_, i) => SCAN_PORT_START + i,
     );
 
-    await Promise.allSettled(ports.map((port) => this.scanPort(port)));
-  }
+    const checks = ports.map(async (port) => {
+      const endpoint = `http://localhost:${port}`;
+      if (this.discoveredEndpoints.has(endpoint)) return;
 
-  private async scanPort(port: number) {
-    // Try 127.0.0.1 first (more reliable/specific than localhost)
-    if (await this.checkPort(`http://127.0.0.1:${port}`)) return;
-    // Fallback to localhost if 127.0.0.1 didn't respond
-    await this.checkPort(`http://localhost:${port}`);
-  }
+      try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), SCAN_TIMEOUT_MS);
 
-  private async checkPort(endpoint: string): Promise<boolean> {
-    try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), SCAN_TIMEOUT_MS);
+        const response = await fetch(`${endpoint}/health`, {
+          signal: controller.signal,
+        });
 
-      const response = await fetch(`${endpoint}/health`, {
-        signal: controller.signal,
-      });
+        clearTimeout(timeout);
 
-      clearTimeout(timeout);
-
-      if (response.ok) {
-        this.addEndpoint(endpoint);
-        return true;
+        if (response.ok) {
+          this.discoveredEndpoints.add(endpoint);
+        }
+      } catch {
+        // Port not responding
       }
-    } catch {
-      // Port not responding
+    });
+
+    await Promise.allSettled(checks);
+    await this.refreshNodes();
+  }
+
+  private async refreshNodes() {
+    const nodes = await this.discoverNodes();
+    if (this.onUpdate) {
+      this.onUpdate(nodes);
     }
-    return false;
   }
 
   async discoverNodes(): Promise<NodeMetrics[]> {
@@ -78,59 +90,28 @@ export class NodeDiscovery {
       endpoints.map((endpoint) => this.fetchNodeMetrics(endpoint)),
     );
 
-    const uniqueNodes = new Map<string, NodeMetrics>();
-    const nodeIdToEndpoint = new Map<string, string>();
+    const nodes: NodeMetrics[] = [];
 
     results.forEach((result, index) => {
       const endpoint = endpoints[index];
 
       if (result.status === "fulfilled" && result.value) {
-        const node = result.value;
-
-        // Auto-cleanup duplicates (e.g. localhost vs 127.0.0.1 for same node)
-        if (nodeIdToEndpoint.has(node.nodeId)) {
-          const existingEndpoint = nodeIdToEndpoint.get(node.nodeId)!;
-          let toRemove = endpoint;
-          let toKeep = existingEndpoint;
-
-          // Prefer 127.0.0.1
-          if (
-            endpoint.includes("127.0.0.1") &&
-            existingEndpoint.includes("localhost")
-          ) {
-            toKeep = endpoint;
-            toRemove = existingEndpoint;
-          }
-
-          this.removeEndpoint(toRemove);
-          nodeIdToEndpoint.set(node.nodeId, toKeep);
-
-          // Update connection for the kept endpoint
-          this.connections.set(toKeep, {
-            endpoint: toKeep,
-            nodeId: node.nodeId,
-            connected: true,
-            lastSeen: Date.now(),
-          });
-        } else {
-          nodeIdToEndpoint.set(node.nodeId, endpoint);
-          uniqueNodes.set(node.nodeId, node);
-
-          this.connections.set(endpoint, {
-            endpoint,
-            nodeId: node.nodeId,
-            connected: true,
-            lastSeen: Date.now(),
-          });
-        }
+        nodes.push(result.value);
+        this.connections.set(endpoint, {
+          endpoint,
+          nodeId: result.value.nodeId,
+          connected: true,
+          lastSeen: Date.now(),
+        });
       } else {
+        // Mark as disconnected but keep in list
         const existing = this.connections.get(endpoint);
         if (existing) {
           existing.connected = false;
         } else {
-          this.connections.set(endpoint, {
+           this.connections.set(endpoint, {
             endpoint,
-            nodeId: "unreachable",
+            nodeId: "unknown",
             connected: false,
             lastSeen: 0,
           });
@@ -138,7 +119,7 @@ export class NodeDiscovery {
       }
     });
 
-    return Array.from(uniqueNodes.values());
+    return nodes;
   }
 
   private async fetchNodeMetrics(
@@ -146,9 +127,12 @@ export class NodeDiscovery {
   ): Promise<NodeMetrics | null> {
     try {
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 2000);
+      const timeout = setTimeout(() => controller.abort(), 3000);
 
-      const response = await fetch(`${endpoint}/metrics`, {
+      // Handle HTTPS automatically if endpoint starts with http/https
+      const url = endpoint.startsWith("http") ? endpoint : `http://${endpoint}`;
+
+      const response = await fetch(`${url}/metrics`, {
         signal: controller.signal,
         headers: { Accept: "application/json" },
       });
@@ -159,8 +143,8 @@ export class NodeDiscovery {
 
       const data = await response.json();
       return this.parseNodeMetrics(data, endpoint);
-    } catch {
-      // Failed to fetch metrics (node likely offline or starting up)
+    } catch (e) {
+      console.warn(`Failed to fetch metrics from ${endpoint}:`, e);
       return null;
     }
   }
@@ -194,8 +178,6 @@ export class NodeDiscovery {
       fuelConsumed: (raw.fuelConsumed as number) || 0,
       peers: (raw.peers as string[]) || [],
       lastUpdate: Date.now(),
-      status: "healthy",
-      packetLoss: 0,
     };
   }
 
@@ -205,19 +187,14 @@ export class NodeDiscovery {
     if (this.pollingInterval) clearInterval(this.pollingInterval);
     if (this.scanInterval) clearInterval(this.scanInterval);
 
-    const poll = async () => {
-      const nodes = await this.discoverNodes();
-      if (this.onUpdate) this.onUpdate(nodes);
-    };
-
     // Initial scan then poll
-    this.scanForNodes().then(poll);
+    this.scanForNodes();
 
     // Re-scan for new nodes every 10 seconds
     this.scanInterval = setInterval(() => this.scanForNodes(), 10000);
 
     // Poll known nodes at requested interval
-    this.pollingInterval = setInterval(poll, intervalMs);
+    this.pollingInterval = setInterval(() => this.refreshNodes(), intervalMs);
   }
 
   stopPolling() {
