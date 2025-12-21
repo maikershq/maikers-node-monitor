@@ -3,9 +3,8 @@
 import { memo } from "react";
 import { twMerge } from "tailwind-merge";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
-import { CellFabric } from "./cell-fabric";
 import { formatLatency, formatNumber } from "@/lib/utils";
-import type { NodeMetrics, NodeStatus } from "@/lib/types";
+import type { NodeMetrics, NodeStatus, CellMetrics } from "@/lib/types";
 import {
   Shield,
   ShieldCheck,
@@ -14,7 +13,44 @@ import {
   Cpu,
   WifiOff,
   AlertTriangle,
+  Database,
 } from "lucide-react";
+
+function CellDotsLine({ cells }: { cells: CellMetrics[] }) {
+  const dotSize = cells.length > 32 ? 3 : cells.length > 16 ? 4 : 5;
+
+  return (
+    <div className="flex flex-wrap gap-0.5">
+      {cells.map((cell) => {
+        const intensity = cell.signal / 100;
+        const hue = 260 - intensity * 30;
+        const alpha = 0.15 + intensity * 0.6;
+        const isHighLoad = cell.signal > 80;
+        const hasQueue = cell.queueDepth > 0;
+
+        return (
+          <div
+            key={cell.id}
+            className={twMerge(
+              "rounded-sm transition-all",
+              isHighLoad && "shadow-[0_0_4px_var(--sys-danger)]",
+              hasQueue && "shadow-[0_0_3px_var(--sys-tee)]",
+            )}
+            style={{
+              width: dotSize,
+              height: dotSize,
+              backgroundColor:
+                intensity > 0.02
+                  ? `hsla(${hue}, 60%, 50%, ${alpha})`
+                  : "#374151",
+            }}
+            title={`Cell ${cell.id} • Signal: ${Math.round(cell.signal)}% • Queue: ${cell.queueDepth}`}
+          />
+        );
+      })}
+    </div>
+  );
+}
 
 interface NodeCardProps {
   node: NodeMetrics;
@@ -99,7 +135,19 @@ function NodeCardComponent({ node, className }: NodeCardProps) {
         </div>
       </CardHeader>
       <CardContent className="space-y-3 pt-0 px-4">
-        <CellFabric cells={node.cells} />
+        {/* Cell Shards - inline dot visualization */}
+        <div className="py-2 px-2 bg-zinc-900/50 rounded">
+          <div className="flex items-center justify-between mb-1.5">
+            <div className="flex items-center gap-1 text-[9px] text-zinc-500">
+              <Database className="w-3 h-3" />
+              <span>Cell Shards</span>
+            </div>
+            <span className="text-[9px] text-zinc-600 font-mono">
+              {node.cells.length} owned
+            </span>
+          </div>
+          <CellDotsLine cells={node.cells} />
+        </div>
 
         <div className="grid grid-cols-4 gap-2 text-center">
           <div>
