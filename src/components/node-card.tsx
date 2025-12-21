@@ -98,8 +98,8 @@ function NodeCardComponent({ node, className }: NodeCardProps) {
           )}
         </div>
       </CardHeader>
-      <CardContent className="space-y-4 pt-0">
-        <CellFabric cells={node.cells} className="h-20" />
+      <CardContent className="space-y-3 pt-0 px-4">
+        <CellFabric cells={node.cells} />
 
         <div className="grid grid-cols-4 gap-2 text-center">
           <div>
