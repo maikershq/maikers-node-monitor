@@ -74,7 +74,7 @@ export function GlobalCellFabric({ nodes, className }: GlobalCellFabricProps) {
         <CardTitle className="flex items-center justify-between text-sm font-medium">
           <div className="flex items-center gap-2">
             <Cpu className="w-3.5 h-3.5 text-[var(--sys-tee)]" />
-            Global Cell Fabric
+            Shards
           </div>
           <div className="flex items-center gap-3 text-[10px] font-normal">
             <span className="text-[var(--sys-success)]">

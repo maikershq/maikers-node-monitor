@@ -20,7 +20,7 @@ export function ArchitectureStack({ metrics }: ArchitectureStackProps) {
     <div className="w-full md:w-48 flex flex-col gap-1">
       <div className="bg-[#0a0a0c] border border-zinc-800/50 rounded p-2 flex-1 flex flex-col text-[10px] font-mono">
         <div className="font-bold text-white text-xs mb-2 border-b border-zinc-800 pb-1">
-          ARCHITECTURE STACK
+          STACK
         </div>
 
         {/* INGEST LAYER */}

@@ -117,7 +117,7 @@ export function ClusterStatus({ nodes, className }: ClusterStatusProps) {
         <CardTitle className="flex items-center justify-between text-sm font-medium">
           <div className="flex items-center gap-2">
             <Layers className="w-3.5 h-3.5 text-[var(--sys-accent)]" />
-            Architecture Stack
+            Stack
           </div>
           <div
             className={twMerge(
