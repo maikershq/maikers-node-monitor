@@ -221,20 +221,20 @@ export function Dashboard() {
           </div>
 
           {/* Main Visualization Row: Cell Fabric + Stack + Node Pool */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 mb-6 animate-in">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 mb-6 animate-in lg:h-[380px]">
             {/* Global Cell Fabric - Main visualization */}
-            <div className="lg:col-span-5">
-              <GlobalCellFabric nodes={nodes} />
+            <div className="lg:col-span-5 h-full">
+              <GlobalCellFabric nodes={nodes} className="h-full" />
             </div>
 
             {/* Architecture Stack */}
-            <div className="lg:col-span-3">
-              <ClusterStatus nodes={nodes} />
+            <div className="lg:col-span-3 h-full">
+              <ClusterStatus nodes={nodes} className="h-full" />
             </div>
 
             {/* Node Pool */}
-            <div className="lg:col-span-4">
-              <NodePool nodes={nodes} />
+            <div className="lg:col-span-4 h-full">
+              <NodePool nodes={nodes} className="h-full" />
             </div>
           </div>
 

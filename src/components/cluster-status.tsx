@@ -112,8 +112,8 @@ export function ClusterStatus({ nodes, className }: ClusterStatusProps) {
   ];
 
   return (
-    <Card className={twMerge("monitor-card", className)}>
-      <CardHeader className="pb-2 pt-3">
+    <Card className={twMerge("monitor-card h-full flex flex-col", className)}>
+      <CardHeader className="pb-2 pt-3 flex-none">
         <CardTitle className="flex items-center justify-between text-sm font-medium">
           <div className="flex items-center gap-2">
             <Layers className="w-3.5 h-3.5 text-[var(--sys-accent)]" />
@@ -135,8 +135,8 @@ export function ClusterStatus({ nodes, className }: ClusterStatusProps) {
           </div>
         </CardTitle>
       </CardHeader>
-      <CardContent className="pt-0 pb-3">
-        <div className="space-y-1">
+      <CardContent className="pt-0 pb-3 flex-1 flex flex-col min-h-0 justify-between">
+        <div className="space-y-1 flex-1 flex flex-col justify-center">
           {layers.map((layer) => {
             const Icon = layer.icon;
             return (
@@ -163,7 +163,7 @@ export function ClusterStatus({ nodes, className }: ClusterStatusProps) {
         </div>
 
         {/* Replication Status */}
-        <div className="mt-3 pt-2 border-t border-zinc-800/50">
+        <div className="mt-auto pt-2 border-t border-zinc-800/50 flex-none">
           <div className="grid grid-cols-3 gap-2 text-center text-[10px]">
             <div>
               <div className="text-zinc-500">Healthy</div>
@@ -202,7 +202,7 @@ export function ClusterStatus({ nodes, className }: ClusterStatusProps) {
 
         {/* Events in flight */}
         {stats.totalEvents > 0 && (
-          <div className="mt-2 pt-2 border-t border-zinc-800/50 flex items-center justify-between text-[10px]">
+          <div className="mt-2 pt-2 border-t border-zinc-800/50 flex items-center justify-between text-[10px] flex-none">
             <span className="text-zinc-500">Events in queue</span>
             <span className="text-[var(--sys-accent)] font-mono">
               {stats.totalEvents.toLocaleString()}

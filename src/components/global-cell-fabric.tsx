@@ -69,8 +69,8 @@ export function GlobalCellFabric({ nodes, className }: GlobalCellFabricProps) {
   const cols = 8; // 8x8 grid for 64 cells
 
   return (
-    <Card className={twMerge("monitor-card h-full", className)}>
-      <CardHeader className="pb-2 pt-3">
+    <Card className={twMerge("monitor-card h-full flex flex-col", className)}>
+      <CardHeader className="pb-2 pt-3 flex-none">
         <CardTitle className="flex items-center justify-between text-sm font-medium">
           <div className="flex items-center gap-2">
             <Cpu className="w-3.5 h-3.5 text-[var(--sys-tee)]" />
@@ -100,76 +100,78 @@ export function GlobalCellFabric({ nodes, className }: GlobalCellFabricProps) {
           </div>
         </CardTitle>
       </CardHeader>
-      <CardContent className="pt-0 pb-3 flex-1">
-        <div
-          className="grid gap-1 rounded overflow-hidden p-1 w-full"
-          style={{
-            gridTemplateColumns: `repeat(${cols}, 1fr)`,
-            backgroundColor: "#0a0a0c",
-          }}
-        >
-          {globalCells.map((cell) => {
-            const intensity = cell.totalSignal / 100;
-            const hue = 260 - intensity * 30;
-            const alpha = 0.1 + intensity * 0.5;
-            const isHighLoad = cell.totalSignal > 80;
-            const isDegraded = !cell.healthy && cell.replicationCount > 0;
-            const isEmpty = cell.replicationCount === 0;
+      <CardContent className="pt-0 pb-3 flex-1 flex flex-col min-h-0">
+        <div className="flex-1 min-h-0 flex items-center justify-center">
+          <div
+            className="grid gap-1 rounded overflow-hidden p-1 w-full max-w-md aspect-square"
+            style={{
+              gridTemplateColumns: `repeat(${cols}, 1fr)`,
+              backgroundColor: "#0a0a0c",
+            }}
+          >
+            {globalCells.map((cell) => {
+              const intensity = cell.totalSignal / 100;
+              const hue = 260 - intensity * 30;
+              const alpha = 0.1 + intensity * 0.5;
+              const isHighLoad = cell.totalSignal > 80;
+              const isDegraded = !cell.healthy && cell.replicationCount > 0;
+              const isEmpty = cell.replicationCount === 0;
 
-            return (
-              <div
-                key={cell.id}
-                className={twMerge(
-                  "relative cursor-crosshair transition-all rounded aspect-square",
-                  isHighLoad && "animate-pulse",
-                  isDegraded && "ring-1 ring-[var(--sys-warn)]/50",
-                )}
-                style={{
-                  backgroundColor: isEmpty
-                    ? "#18181b"
-                    : `hsla(${hue}, 60%, 50%, ${alpha})`,
-                }}
-                title={`Cell ${cell.id} • RF: ${cell.replicationCount}/${DEFAULT_REPLICATION_FACTOR} • Signal: ${Math.round(cell.totalSignal)}% • Queue: ${cell.totalQueueDepth}`}
-              >
-                {/* Replication indicator dots */}
-                <div className="absolute bottom-0.5 left-0.5 flex gap-px">
-                  {Array.from({ length: DEFAULT_REPLICATION_FACTOR }).map(
-                    (_, i) => (
+              return (
+                <div
+                  key={cell.id}
+                  className={twMerge(
+                    "relative cursor-crosshair transition-all rounded aspect-square",
+                    isHighLoad && "animate-pulse",
+                    isDegraded && "ring-1 ring-[var(--sys-warn)]/50",
+                  )}
+                  style={{
+                    backgroundColor: isEmpty
+                      ? "#18181b"
+                      : `hsla(${hue}, 60%, 50%, ${alpha})`,
+                  }}
+                  title={`Cell ${cell.id} • RF: ${cell.replicationCount}/${DEFAULT_REPLICATION_FACTOR} • Signal: ${Math.round(cell.totalSignal)}% • Queue: ${cell.totalQueueDepth}`}
+                >
+                  {/* Replication indicator dots */}
+                  <div className="absolute bottom-0.5 left-0.5 flex gap-px">
+                    {Array.from({ length: DEFAULT_REPLICATION_FACTOR }).map(
+                      (_, i) => (
+                        <div
+                          key={i}
+                          className={twMerge(
+                            "w-1.5 h-1.5 rounded-full",
+                            i < cell.replicationCount
+                              ? "bg-[var(--sys-success)]"
+                              : "bg-zinc-700",
+                          )}
+                        />
+                      ),
+                    )}
+                  </div>
+
+                  {/* Queue depth indicator */}
+                  {cell.totalQueueDepth > 0 && (
+                    <div className="absolute top-0.5 right-0.5">
                       <div
-                        key={i}
                         className={twMerge(
-                          "w-1.5 h-1.5 rounded-full",
-                          i < cell.replicationCount
-                            ? "bg-[var(--sys-success)]"
-                            : "bg-zinc-700",
+                          "w-2 h-2 rounded-full",
+                          cell.totalQueueDepth > 10
+                            ? "bg-[var(--sys-danger)]"
+                            : cell.totalQueueDepth > 5
+                              ? "bg-[var(--sys-warn)]"
+                              : "bg-[var(--sys-accent)]",
                         )}
                       />
-                    ),
+                    </div>
                   )}
                 </div>
-
-                {/* Queue depth indicator */}
-                {cell.totalQueueDepth > 0 && (
-                  <div className="absolute top-0.5 right-0.5">
-                    <div
-                      className={twMerge(
-                        "w-2 h-2 rounded-full",
-                        cell.totalQueueDepth > 10
-                          ? "bg-[var(--sys-danger)]"
-                          : cell.totalQueueDepth > 5
-                            ? "bg-[var(--sys-warn)]"
-                            : "bg-[var(--sys-accent)]",
-                      )}
-                    />
-                  </div>
-                )}
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
 
         {/* Legend */}
-        <div className="flex items-center justify-between mt-2 text-[9px] text-zinc-600">
+        <div className="flex items-center justify-between mt-2 text-[9px] text-zinc-600 flex-none">
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-1">
               <div className="flex gap-px">

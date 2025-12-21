@@ -53,8 +53,8 @@ export function NodePool({ nodes, className }: NodePoolProps) {
   const totalClaimed = nodeData.reduce((s, n) => s + n.claimedEvents, 0);
 
   return (
-    <Card className={twMerge("monitor-card", className)}>
-      <CardHeader className="pb-2 pt-3">
+    <Card className={twMerge("monitor-card h-full flex flex-col", className)}>
+      <CardHeader className="pb-2 pt-3 flex-none">
         <CardTitle className="flex items-center justify-between text-sm font-medium">
           <div className="flex items-center gap-2">
             <ShieldCheck className="w-3.5 h-3.5 text-[var(--sys-tee)]" />
@@ -65,9 +65,9 @@ export function NodePool({ nodes, className }: NodePoolProps) {
           </span>
         </CardTitle>
       </CardHeader>
-      <CardContent className="pt-0 pb-3">
+      <CardContent className="pt-0 pb-3 flex-1 flex flex-col min-h-0">
         {/* Node list with cell ownership */}
-        <div className="space-y-1 max-h-32 overflow-y-auto">
+        <div className="space-y-1 overflow-y-auto flex-1 pr-1 custom-scrollbar">
           {nodeData.map((node) => (
             <div
               key={node.id}
