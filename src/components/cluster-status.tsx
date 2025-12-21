@@ -164,18 +164,18 @@ export function ClusterStatus({ nodes, className }: ClusterStatusProps) {
 
         {/* Replication Status */}
         <div className="mt-auto pt-2 border-t border-zinc-800/50 flex-none">
-          <div className="grid grid-cols-3 gap-2 text-center text-[10px]">
-            <div>
+          <div className="flex items-center justify-between gap-1 text-center text-[9px]">
+            <div className="flex flex-col items-center px-1">
               <div className="text-zinc-500">Healthy</div>
-              <div className="text-[var(--sys-success)] font-mono font-bold">
+              <div className="text-[var(--sys-success)] font-mono font-bold text-xs">
                 {stats.healthyCells}
               </div>
             </div>
-            <div>
+            <div className="flex flex-col items-center px-1">
               <div className="text-zinc-500">Degraded</div>
               <div
                 className={twMerge(
-                  "font-mono font-bold",
+                  "font-mono font-bold text-xs",
                   stats.degradedCells > 0
                     ? "text-[var(--sys-warn)]"
                     : "text-zinc-600",
@@ -184,11 +184,11 @@ export function ClusterStatus({ nodes, className }: ClusterStatusProps) {
                 {stats.degradedCells}
               </div>
             </div>
-            <div>
+            <div className="flex flex-col items-center px-1">
               <div className="text-zinc-500">Empty</div>
               <div
                 className={twMerge(
-                  "font-mono font-bold",
+                  "font-mono font-bold text-xs",
                   stats.emptyCells > 0
                     ? "text-[var(--sys-danger)]"
                     : "text-zinc-600",
