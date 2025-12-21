@@ -127,7 +127,7 @@ export function SettingsPanel({
             Refresh Rate
           </span>
         </div>
-        <div className="flex gap-1.5">
+        <div className="flex flex-wrap gap-1.5">
           {REFRESH_RATES.map((rate) => (
             <button
               key={rate.value}
@@ -153,7 +153,7 @@ export function SettingsPanel({
             Registry Scan
           </span>
         </div>
-        <div className="flex gap-1.5">
+        <div className="flex flex-wrap gap-1.5">
           {REGISTRY_SCAN_RATES.map((rate) => (
             <button
               key={rate.value}

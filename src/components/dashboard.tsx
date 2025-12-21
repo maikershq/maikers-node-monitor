@@ -241,17 +241,23 @@ export function Dashboard() {
             </div>
 
             {/* Middle Column: Group 1 (Stack + Node Pool) */}
-            <div className="lg:col-span-3 h-full flex flex-col gap-3">
+            <div className="lg:col-span-3 h-full flex flex-col gap-3 min-h-[500px] lg:min-h-0">
               <div className="flex-[4] min-h-0">
-                <ClusterStatus nodes={nodes} className="h-full" />
+                <ClusterStatus
+                  nodes={nodes}
+                  className="h-full min-h-[200px] lg:min-h-0"
+                />
               </div>
               <div className="flex-[6] min-h-0">
-                <NodePool nodes={nodes} className="h-full" />
+                <NodePool
+                  nodes={nodes}
+                  className="h-full min-h-[300px] lg:min-h-0"
+                />
               </div>
             </div>
 
             {/* Right Column: Group 2 (Charts) - Unified Card */}
-            <div className="lg:col-span-3 h-full flex flex-col">
+            <div className="lg:col-span-3 h-full flex flex-col min-h-[600px] lg:min-h-0">
               <Card className="monitor-card h-full flex flex-col p-0 overflow-hidden bg-[var(--card-background)]">
                 {/* Throughput Section */}
                 <div className="flex-[1] flex flex-col min-h-0 border-b border-zinc-800/50">
