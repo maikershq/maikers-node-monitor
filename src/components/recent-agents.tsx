@@ -12,10 +12,11 @@ import {
 import { Bot, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 
 interface Agent {
-  id: string;
-  name: string;
-  type: "search" | "transaction" | "monitor" | "creation";
-  status: "active" | "idle" | "failed";
+  pubkey: string;
+  name?: string;
+  image: string;
+  collection: string;
+  durationMs: number;
   nodeId: string;
   timestamp: number;
 }
@@ -25,64 +26,68 @@ const isDev = process.env.NODE_ENV === "development";
 const MOCK_AGENTS: Agent[] = isDev
   ? [
       {
-        id: "ag_8x92...3f21",
+        pubkey: "7xKX...9f3A",
         name: "Nexus Crawler",
-        type: "search",
-        status: "active",
+        image: "https://arweave.net/placeholder1",
+        collection: "Claynosaurz",
+        durationMs: 1250,
         nodeId: "node-001",
         timestamp: 2,
       },
       {
-        id: "ag_7a11...9k00",
-        name: "Asset Minter",
-        type: "creation",
-        status: "active",
+        pubkey: "3mVp...2kL8",
+        image: "https://arweave.net/placeholder2",
+        collection: "Mad Lads",
+        durationMs: 890,
         nodeId: "node-003",
         timestamp: 5,
       },
       {
-        id: "ag_3b44...1p55",
+        pubkey: "9qRt...5nW2",
         name: "Liq. Watcher",
-        type: "monitor",
-        status: "idle",
+        image: "https://arweave.net/placeholder3",
+        collection: "Tensorians",
+        durationMs: 3420,
         nodeId: "node-002",
         timestamp: 12,
       },
       {
-        id: "ag_9c22...4m88",
-        name: "Swap Exec",
-        type: "transaction",
-        status: "active",
+        pubkey: "1pZa...8mK4",
+        image: "https://arweave.net/placeholder4",
+        collection: "Famous Fox",
+        durationMs: 567,
         nodeId: "node-001",
         timestamp: 15,
       },
       {
-        id: "ag_1d33...2n99",
+        pubkey: "5wNb...7cH9",
         name: "Data Syncer",
-        type: "monitor",
-        status: "active",
+        image: "https://arweave.net/placeholder5",
+        collection: "Okay Bears",
+        durationMs: 2100,
         nodeId: "node-004",
         timestamp: 24,
       },
     ]
   : [];
 
-type SortField = "name" | "type" | "status" | "nodeId" | "timestamp";
+type SortField = "name" | "collection" | "duration" | "nodeId" | "timestamp";
 type SortDirection = "asc" | "desc";
-type TypeFilter = "all" | "search" | "transaction" | "monitor" | "creation";
-type StatusFilter = "all" | "active" | "idle" | "failed";
 
 export function RecentAgents() {
   const [sortField, setSortField] = useState<SortField>("timestamp");
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
-  const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [collectionFilter, setCollectionFilter] = useState<string>("all");
+
+  const collections = useMemo(() => {
+    const unique = [...new Set(MOCK_AGENTS.map((a) => a.collection))];
+    return unique.sort();
+  }, []);
 
   const filteredAndSortedAgents = useMemo(() => {
     return [...MOCK_AGENTS]
       .filter((agent) => {
-        if (typeFilter !== "all" && agent.type !== typeFilter) return false;
-        if (statusFilter !== "all" && agent.status !== statusFilter)
+        if (collectionFilter !== "all" && agent.collection !== collectionFilter)
           return false;
         return true;
       })
@@ -92,17 +97,16 @@ export function RecentAgents() {
 
         switch (sortField) {
           case "name":
-            valA = a.name.toLowerCase();
-            valB = b.name.toLowerCase();
+            valA = (a.name || a.pubkey).toLowerCase();
+            valB = (b.name || b.pubkey).toLowerCase();
             break;
-          case "type":
-            valA = a.type;
-            valB = b.type;
+          case "collection":
+            valA = a.collection.toLowerCase();
+            valB = b.collection.toLowerCase();
             break;
-          case "status":
-            const statusOrder = { active: 0, idle: 1, failed: 2 };
-            valA = statusOrder[a.status];
-            valB = statusOrder[b.status];
+          case "duration":
+            valA = a.durationMs;
+            valB = b.durationMs;
             break;
           case "nodeId":
             valA = a.nodeId;
@@ -120,7 +124,7 @@ export function RecentAgents() {
         if (valA > valB) return sortDirection === "asc" ? 1 : -1;
         return 0;
       });
-  }, [sortField, sortDirection, typeFilter, statusFilter]);
+  }, [sortField, sortDirection, collectionFilter]);
 
   const toggleSort = (field: SortField) => {
     if (sortField === field) {
@@ -162,6 +166,11 @@ export function RecentAgents() {
     </button>
   );
 
+  const formatDuration = (ms: number) => {
+    if (ms < 1000) return `${ms}ms`;
+    return `${(ms / 1000).toFixed(2)}s`;
+  };
+
   const formatTimestamp = (seconds: number) => `${seconds}s ago`;
 
   return (
@@ -175,59 +184,21 @@ export function RecentAgents() {
           </span>
         </h2>
 
-        <div className="flex items-center gap-4 flex-wrap">
-          <div className="flex items-center gap-1.5">
-            <span className="text-[10px] text-zinc-600 mr-1">Type:</span>
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <span className="text-[10px] text-zinc-600 mr-1">Collection:</span>
+          <FilterButton
+            label="All"
+            active={collectionFilter === "all"}
+            onClick={() => setCollectionFilter("all")}
+          />
+          {collections.map((c) => (
             <FilterButton
-              label="All"
-              active={typeFilter === "all"}
-              onClick={() => setTypeFilter("all")}
+              key={c}
+              label={c}
+              active={collectionFilter === c}
+              onClick={() => setCollectionFilter(c)}
             />
-            <FilterButton
-              label="Search"
-              active={typeFilter === "search"}
-              onClick={() => setTypeFilter("search")}
-            />
-            <FilterButton
-              label="Tx"
-              active={typeFilter === "transaction"}
-              onClick={() => setTypeFilter("transaction")}
-            />
-            <FilterButton
-              label="Monitor"
-              active={typeFilter === "monitor"}
-              onClick={() => setTypeFilter("monitor")}
-            />
-            <FilterButton
-              label="Create"
-              active={typeFilter === "creation"}
-              onClick={() => setTypeFilter("creation")}
-            />
-          </div>
-
-          <div className="flex items-center gap-1.5">
-            <span className="text-[10px] text-zinc-600 mr-1">Status:</span>
-            <FilterButton
-              label="All"
-              active={statusFilter === "all"}
-              onClick={() => setStatusFilter("all")}
-            />
-            <FilterButton
-              label="Active"
-              active={statusFilter === "active"}
-              onClick={() => setStatusFilter("active")}
-            />
-            <FilterButton
-              label="Idle"
-              active={statusFilter === "idle"}
-              onClick={() => setStatusFilter("idle")}
-            />
-            <FilterButton
-              label="Failed"
-              active={statusFilter === "failed"}
-              onClick={() => setStatusFilter("failed")}
-            />
-          </div>
+          ))}
         </div>
       </div>
 
@@ -245,21 +216,21 @@ export function RecentAgents() {
                 </div>
               </TableHead>
               <TableHead
-                onClick={() => toggleSort("type")}
+                onClick={() => toggleSort("collection")}
                 className="h-10 text-[10px] uppercase tracking-wider font-mono text-zinc-500 cursor-pointer hover:text-zinc-300 transition-colors select-none"
               >
                 <div className="flex items-center gap-1.5">
-                  Type
-                  <SortIcon field="type" />
+                  Collection
+                  <SortIcon field="collection" />
                 </div>
               </TableHead>
               <TableHead
-                onClick={() => toggleSort("status")}
+                onClick={() => toggleSort("duration")}
                 className="h-10 text-[10px] uppercase tracking-wider font-mono text-zinc-500 cursor-pointer hover:text-zinc-300 transition-colors select-none"
               >
                 <div className="flex items-center gap-1.5">
-                  Status
-                  <SortIcon field="status" />
+                  Duration
+                  <SortIcon field="duration" />
                 </div>
               </TableHead>
               <TableHead
@@ -286,47 +257,42 @@ export function RecentAgents() {
             ) : (
               filteredAndSortedAgents.map((agent) => (
                 <TableRow
-                  key={agent.id}
+                  key={agent.pubkey}
                   className="hover:bg-zinc-800/30 border-zinc-800/50 transition-colors"
                 >
                   <TableCell className="py-3 font-medium text-xs">
-                    <div className="flex flex-col">
-                      <span className="text-zinc-200">{agent.name}</span>
-                      <span className="text-[10px] text-zinc-500 font-mono">
-                        {agent.id}
-                      </span>
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded bg-zinc-800 overflow-hidden flex-shrink-0">
+                        <img
+                          src={agent.image}
+                          alt=""
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            e.currentTarget.style.display = "none";
+                          }}
+                        />
+                      </div>
+                      <div className="flex flex-col min-w-0">
+                        {agent.name && (
+                          <span className="text-zinc-200 truncate">
+                            {agent.name}
+                          </span>
+                        )}
+                        <span className="text-[10px] text-zinc-500 font-mono">
+                          {agent.pubkey}
+                        </span>
+                      </div>
                     </div>
                   </TableCell>
                   <TableCell className="py-3">
-                    <span
-                      className={`text-[10px] px-1.5 py-0.5 rounded border ${
-                        agent.type === "search"
-                          ? "border-blue-500/30 text-blue-400 bg-blue-500/10"
-                          : agent.type === "transaction"
-                            ? "border-emerald-500/30 text-emerald-400 bg-emerald-500/10"
-                            : agent.type === "creation"
-                              ? "border-purple-500/30 text-purple-400 bg-purple-500/10"
-                              : "border-zinc-500/30 text-zinc-400 bg-zinc-500/10"
-                      }`}
-                    >
-                      {agent.type}
+                    <span className="text-[10px] px-1.5 py-0.5 rounded border border-zinc-700/50 text-zinc-300 bg-zinc-800/50">
+                      {agent.collection}
                     </span>
                   </TableCell>
                   <TableCell className="py-3">
-                    <div className="flex items-center gap-1.5">
-                      <div
-                        className={`w-1.5 h-1.5 rounded-full ${
-                          agent.status === "active"
-                            ? "bg-emerald-500 animate-pulse"
-                            : agent.status === "idle"
-                              ? "bg-zinc-500"
-                              : "bg-red-500"
-                        }`}
-                      />
-                      <span className="text-[10px] text-zinc-400 capitalize">
-                        {agent.status}
-                      </span>
-                    </div>
+                    <span className="text-[10px] text-zinc-400 font-mono tabular-nums">
+                      {formatDuration(agent.durationMs)}
+                    </span>
                   </TableCell>
                   <TableCell className="py-3 text-right">
                     <div className="flex flex-col items-end">
