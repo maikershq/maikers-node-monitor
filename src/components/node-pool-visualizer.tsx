@@ -69,7 +69,7 @@ export function NodePoolVisualizer({
       } else {
         const load = node.workers.active / (node.workers.total || 1);
         if (load > 0) {
-          color = "#8b5cf6"; // working/purple
+          color = "#8b5cf6"; // synced/purple
           if (load > 0.8) color = "#10b981"; // heavy work/green (matching sim logic)
         } else if (node.teeAttested) {
           // Idle but attested, maybe show as amber like "ready/attesting" in sim
@@ -96,7 +96,7 @@ export function NodePoolVisualizer({
     >
       <div className="flex justify-between items-center mb-1">
         <span className="text-[10px] text-zinc-500 font-bold font-mono">
-          TEE NODE POOL
+          NODE POOL
         </span>
         <span className="text-[10px] text-zinc-600 font-mono tabular-nums">
           {nodes.length} nodes

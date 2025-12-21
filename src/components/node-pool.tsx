@@ -12,23 +12,25 @@ interface NodePoolProps {
   className?: string;
 }
 
-type NodeState = "idle" | "working" | "attesting" | "offline";
+type NodeState = "active" | "error" | "not_synced" | "offline";
 
 function getNodeState(node: NodeMetrics): NodeState {
   if (node.status === "offline") return "offline";
-  if (node.workers.active === 0) return "idle";
-  if (node.workers.active < node.workers.total * 0.3) return "attesting";
-  return "working";
+  if (node.status === "degraded") return "error";
+  if (node.workers.active > 0) return "active";
+  return "not_synced";
 }
 
 function getStateColor(state: NodeState): string {
   switch (state) {
-    case "working":
-      return "bg-[var(--sys-tee)]";
-    case "attesting":
-      return "bg-[var(--sys-warn)]";
-    case "offline":
+    case "active":
+      return "bg-[var(--sys-success)]";
+    case "error":
       return "bg-[var(--sys-danger)]";
+    case "not_synced":
+      return "bg-zinc-700";
+    case "offline":
+      return "bg-zinc-800 border border-zinc-700";
     default:
       return "bg-zinc-700";
   }
@@ -48,7 +50,11 @@ export function NodePool({ nodes, className }: NodePoolProps) {
     }));
   }, [nodes]);
 
-  const workingCount = nodeData.filter((n) => n.state === "working").length;
+  const activeCount = nodeData.filter((n) => n.state === "active").length;
+  const errorCount = nodeData.filter((n) => n.state === "error").length;
+  const notSyncedCount = nodeData.filter(
+    (n) => n.state === "not_synced",
+  ).length;
   const totalWorkers = nodes.reduce((s, n) => s + n.workers.active, 0);
   const totalClaimed = nodeData.reduce((s, n) => s + n.claimedEvents, 0);
 
@@ -58,7 +64,7 @@ export function NodePool({ nodes, className }: NodePoolProps) {
         <CardTitle className="flex items-center justify-between text-sm font-medium">
           <div className="flex items-center gap-2">
             <ShieldCheck className="w-3.5 h-3.5 text-[var(--sys-tee)]" />
-            TEE Node Pool
+            Node Pool
           </div>
           <span className="text-[10px] font-normal text-zinc-500">
             {nodes.length} nodes • {totalWorkers} workers
@@ -82,7 +88,8 @@ export function NodePool({ nodes, className }: NodePoolProps) {
                 className={twMerge(
                   "w-2 h-2 rounded-full flex-shrink-0",
                   getStateColor(node.state),
-                  node.state === "working" && "shadow-[0_0_4px_var(--sys-tee)]",
+                  node.state === "active" &&
+                    "shadow-[0_0_4px_var(--sys-success)] animate-pulse",
                 )}
               />
 
@@ -121,23 +128,21 @@ export function NodePool({ nodes, className }: NodePoolProps) {
         <div className="flex items-center justify-between mt-3 pt-2 border-t border-zinc-800/50 text-[10px]">
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-[var(--sys-tee)]" />
-              <span className="text-zinc-400">Working</span>
-              <span className="text-white font-mono">{workingCount}</span>
+              <span className="w-2 h-2 rounded-full bg-[var(--sys-success)]" />
+              <span className="text-zinc-400">Active</span>
+              <span className="text-white font-mono">{activeCount}</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-[var(--sys-danger)]" />
+              <span className="text-zinc-400">Error</span>
+              <span className="text-white font-mono">{errorCount}</span>
             </div>
             <div className="flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-zinc-700" />
-              <span className="text-zinc-400">Idle</span>
-              <span className="text-white font-mono">
-                {nodes.length - workingCount}
-              </span>
+              <span className="text-zinc-400">Not synced</span>
+              <span className="text-white font-mono">{notSyncedCount}</span>
             </div>
           </div>
-          {totalClaimed > 0 && (
-            <span className="text-[var(--sys-accent)]">
-              {totalClaimed} events claimed
-            </span>
-          )}
         </div>
       </CardContent>
     </Card>
