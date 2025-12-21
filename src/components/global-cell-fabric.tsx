@@ -139,18 +139,17 @@ export function GlobalCellFabric({ nodes, className }: GlobalCellFabricProps) {
           </div>
         </CardTitle>
       </CardHeader>
-      <CardContent className="pt-0 pb-3 flex-1 flex flex-col min-h-0 relative">
+      <CardContent className="pt-0 pb-3 flex-1 flex flex-col min-h-0 relative overflow-hidden">
         <div 
           ref={containerRef}
-          className="flex-1 min-h-0 flex items-center justify-center relative"
+          className="flex-1 min-h-0 flex items-center justify-center relative overflow-auto"
           onMouseMove={handleMouseMove}
         >
           <div
-            className={twMerge(
-              "grid gap-1 rounded overflow-hidden p-1 w-full h-full",
-            )}
+            className="grid gap-1 rounded p-1 w-full max-w-full aspect-square"
             style={{
               gridTemplateColumns: `repeat(${cols}, 1fr)`,
+              gridTemplateRows: `repeat(${cols}, 1fr)`,
               backgroundColor: "#0a0a0c",
             }}
           >
@@ -168,7 +167,7 @@ export function GlobalCellFabric({ nodes, className }: GlobalCellFabricProps) {
                   onMouseEnter={() => setHoveredCell(cell)}
                   onMouseLeave={() => setHoveredCell(null)}
                   className={twMerge(
-                    "relative cursor-crosshair transition-all rounded aspect-square border",
+                    "relative cursor-crosshair transition-all rounded border",
                     isHighLoad && "animate-pulse",
                     hoveredCell?.id === cell.id && "z-10 ring-1 ring-white/30"
                   )}
