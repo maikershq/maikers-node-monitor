@@ -1,9 +1,6 @@
 import type { NodeMetrics } from "./types";
 import { config } from "./config";
 
-const SCAN_PORT_START = 8080;
-const SCAN_PORT_END = 8099;
-const SCAN_TIMEOUT_MS = 1000;
 const REGISTRY_TIMEOUT_MS = 5000;
 
 export interface NodeConnection {
@@ -16,11 +13,11 @@ export interface NodeConnection {
 export class NodeDiscovery {
   private discoveredEndpoints: Set<string> = new Set();
   private connections: Map<string, NodeConnection> = new Map();
-  // Registry keyed by endpoint (not nodeId) to prevent duplicates
   private nodesByEndpoint: Map<string, NodeMetrics> = new Map();
   private pollingInterval: NodeJS.Timeout | null = null;
   private scanInterval: NodeJS.Timeout | null = null;
   private onUpdate: ((nodes: NodeMetrics[]) => void) | null = null;
+  private registryUrl: string = config.registryUrl;
 
   constructor() {
     if (typeof window !== "undefined") {
@@ -36,6 +33,14 @@ export class NodeDiscovery {
         }
       }
     }
+  }
+
+  setRegistryUrl(url: string) {
+    this.registryUrl = url.replace(/\/$/, "");
+  }
+
+  getRegistryUrl(): string {
+    return this.registryUrl;
   }
 
   async addEndpoint(endpoint: string) {
@@ -68,23 +73,18 @@ export class NodeDiscovery {
   }
 
   async scanForNodes(): Promise<void> {
-    // First, try to fetch from registry
     await this.fetchFromRegistry();
-
-    // Then scan local ports as fallback
-    await this.scanLocalPorts();
-
     await this.refreshNodes();
   }
 
   private async fetchFromRegistry(): Promise<void> {
-    if (!config.registryUrl) return;
+    if (!this.registryUrl) return;
 
     try {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), REGISTRY_TIMEOUT_MS);
 
-      const response = await fetch(`${config.registryUrl}/nodes`, {
+      const response = await fetch(`${this.registryUrl}/nodes`, {
         signal: controller.signal,
         headers: { Accept: "application/json" },
       });
@@ -111,37 +111,6 @@ export class NodeDiscovery {
     } catch (err) {
       console.warn("Failed to fetch from registry:", err);
     }
-  }
-
-  private async scanLocalPorts(): Promise<void> {
-    const ports = Array.from(
-      { length: SCAN_PORT_END - SCAN_PORT_START + 1 },
-      (_, i) => SCAN_PORT_START + i,
-    );
-
-    const checks = ports.map(async (port) => {
-      const endpoint = `http://localhost:${port}`;
-      if (this.discoveredEndpoints.has(endpoint)) return;
-
-      try {
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), SCAN_TIMEOUT_MS);
-
-        const response = await fetch(`${endpoint}/health`, {
-          signal: controller.signal,
-        });
-
-        clearTimeout(timeout);
-
-        if (response.ok) {
-          this.discoveredEndpoints.add(endpoint);
-        }
-      } catch {
-        // Port not responding
-      }
-    });
-
-    await Promise.allSettled(checks);
   }
 
   private async refreshNodes() {
