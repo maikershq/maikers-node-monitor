@@ -164,22 +164,22 @@ export function ClusterStatus({ nodes, className }: ClusterStatusProps) {
 
         {/* Replication Status */}
         <div className="mt-auto pt-2 border-t border-zinc-800/50 flex-none">
-          <div className="flex items-center justify-between text-[9px] text-zinc-500">
-            <div className="flex items-center gap-1.5">
+          <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-[9px] text-zinc-500">
+            <div className="flex items-center gap-1.5 whitespace-nowrap">
               <span className="w-1.5 h-1.5 rounded-full bg-[var(--sys-success)] shrink-0" />
               <span className="text-zinc-200 font-mono font-bold">
                 {stats.healthyCells}
               </span>
               <span>healthy</span>
             </div>
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1.5 whitespace-nowrap">
               <span className="w-1.5 h-1.5 rounded-full bg-[var(--sys-warn)] shrink-0" />
               <span className="text-zinc-200 font-mono font-bold">
                 {stats.degradedCells}
               </span>
               <span>degraded</span>
             </div>
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1.5 whitespace-nowrap">
               <span className="w-1.5 h-1.5 rounded-full bg-[var(--sys-danger)] shrink-0" />
               <span className="text-zinc-200 font-mono font-bold">
                 {stats.emptyCells}
