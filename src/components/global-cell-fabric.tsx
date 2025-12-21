@@ -103,7 +103,11 @@ export function GlobalCellFabric({ nodes, className }: GlobalCellFabricProps) {
       <CardContent className="pt-0 pb-3 flex-1 flex flex-col min-h-0">
         <div className="flex-1 min-h-0 flex items-center justify-center">
           <div
-            className="grid gap-1 rounded overflow-hidden p-1 w-full max-w-md aspect-square"
+            className={twMerge(
+              "grid gap-1 rounded overflow-hidden p-1",
+              "w-full aspect-square max-w-[400px]", // Mobile: width constrained
+              "lg:w-auto lg:h-full lg:max-w-none", // Desktop: height constrained
+            )}
             style={{
               gridTemplateColumns: `repeat(${cols}, 1fr)`,
               backgroundColor: "#0a0a0c",
