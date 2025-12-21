@@ -19,7 +19,7 @@ export const metadata: Metadata = {
   description:
     "Real-time monitoring, metrics, and health status for Maikers cellular stigmergy nodes and agent infrastructure.",
   metadataBase: new URL(
-    process.env.NEXT_PUBLIC_SITE_URL || "https://localhost:3000",
+    process.env.NEXT_PUBLIC_SITE_URL || "https://nodes.maikers.com",
   ),
 
   keywords: [
