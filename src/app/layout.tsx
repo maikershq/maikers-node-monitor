@@ -110,6 +110,9 @@ export const metadata: Metadata = {
     canonical: "/",
   },
   category: "technology",
+  other: {
+    "og:logo": "/logo.png",
+  },
 };
 
 export const viewport: Viewport = {
