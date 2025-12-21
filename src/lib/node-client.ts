@@ -1,4 +1,4 @@
-import type { NodeMetrics } from "./types";
+import type { NodeMetrics, NodeStatus } from "./types";
 
 const SCAN_PORT_START = 8080;
 const SCAN_PORT_END = 8099;
@@ -14,6 +14,8 @@ export interface NodeConnection {
 export class NodeDiscovery {
   private discoveredEndpoints: Set<string> = new Set();
   private connections: Map<string, NodeConnection> = new Map();
+  // Cache of last known healthy metrics for each endpoint
+  private endpointMetrics: Map<string, NodeMetrics> = new Map();
   private pollingInterval: NodeJS.Timeout | null = null;
   private scanInterval: NodeJS.Timeout | null = null;
   private onUpdate: ((nodes: NodeMetrics[]) => void) | null = null;
@@ -54,6 +56,7 @@ export class NodeDiscovery {
   removeEndpoint(endpoint: string) {
     this.discoveredEndpoints.delete(endpoint);
     this.connections.delete(endpoint);
+    this.endpointMetrics.delete(endpoint);
     this.saveEndpoints();
     // Notify update to remove it from UI
     if (this.onUpdate) {
@@ -116,19 +119,42 @@ export class NodeDiscovery {
     );
 
     const nodeMap = new Map<string, NodeMetrics>();
+    const statusPriority: Record<NodeStatus, number> = {
+      healthy: 3,
+      degraded: 2,
+      offline: 1,
+    };
+
+    const addToMap = (node: NodeMetrics) => {
+      const existing = nodeMap.get(node.nodeId);
+      if (!existing) {
+        nodeMap.set(node.nodeId, node);
+        return;
+      }
+
+      const newScore = statusPriority[node.status];
+      const oldScore = statusPriority[existing.status];
+
+      if (newScore > oldScore) {
+        nodeMap.set(node.nodeId, node);
+      } else if (newScore === oldScore) {
+        // Tie-break by recency
+        if (node.lastUpdate > existing.lastUpdate) {
+          nodeMap.set(node.nodeId, node);
+        }
+      }
+    };
 
     results.forEach((result, index) => {
       const endpoint = endpoints[index];
 
       if (result.status === "fulfilled" && result.value) {
         const node = result.value;
-        // Deduplicate by nodeId - keep the most recent
-        if (
-          !nodeMap.has(node.nodeId) ||
-          node.lastUpdate > (nodeMap.get(node.nodeId)?.lastUpdate ?? 0)
-        ) {
-          nodeMap.set(node.nodeId, node);
-        }
+        node.status = "healthy"; // Explicitly set healthy
+        this.endpointMetrics.set(endpoint, node); // Update cache
+
+        addToMap(node);
+
         this.connections.set(endpoint, {
           endpoint,
           nodeId: node.nodeId,
@@ -136,6 +162,18 @@ export class NodeDiscovery {
           lastSeen: Date.now(),
         });
       } else {
+        // Fetch failed
+        const cached = this.endpointMetrics.get(endpoint);
+        if (cached) {
+          // Use cached data but mark as offline
+          const offlineNode: NodeMetrics = {
+            ...cached,
+            status: "offline",
+            lastUpdate: Date.now(), // Update time to show it's a current check result
+          };
+          addToMap(offlineNode);
+        }
+
         const existing = this.connections.get(endpoint);
         if (existing) {
           existing.connected = false;
@@ -209,6 +247,8 @@ export class NodeDiscovery {
       fuelConsumed: (raw.fuelConsumed as number) || 0,
       peers: (raw.peers as string[]) || [],
       lastUpdate: Date.now(),
+      status: "healthy", // Default status
+      packetLoss: 0,
     };
   }
 
