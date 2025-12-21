@@ -4,7 +4,8 @@ import { useMemo } from "react";
 import { twMerge } from "tailwind-merge";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import type { NodeMetrics } from "@/lib/types";
-import { ShieldCheck } from "lucide-react";
+import { TOTAL_CELLS } from "@/lib/types";
+import { ShieldCheck, Database } from "lucide-react";
 
 interface NodePoolProps {
   nodes: NodeMetrics[];
@@ -34,25 +35,22 @@ function getStateColor(state: NodeState): string {
 }
 
 export function NodePool({ nodes, className }: NodePoolProps) {
-  const nodeStates = useMemo(() => {
+  const nodeData = useMemo(() => {
     return nodes.map((node) => ({
       id: node.nodeId,
       state: getNodeState(node),
       workers: node.workers,
       secure: node.secure,
+      cellCount: node.cells.length,
+      ownedCells: node.ownedCells || node.cells.map((c) => c.id),
+      claimedEvents: node.claimedEvents || 0,
+      throughput: node.throughput,
     }));
   }, [nodes]);
 
-  const workingCount = nodeStates.filter((n) => n.state === "working").length;
-  const attestingCount = nodeStates.filter(
-    (n) => n.state === "attesting",
-  ).length;
+  const workingCount = nodeData.filter((n) => n.state === "working").length;
   const totalWorkers = nodes.reduce((s, n) => s + n.workers.active, 0);
-
-  // Calculate dot size based on node count
-  const total = nodes.length;
-  const dotSize = total > 100 ? 4 : total > 50 ? 5 : total > 20 ? 6 : 8;
-  const cols = Math.max(10, Math.ceil(Math.sqrt(total * 2)));
+  const totalClaimed = nodeData.reduce((s, n) => s + n.claimedEvents, 0);
 
   return (
     <Card className={twMerge("monitor-card", className)}>
@@ -68,45 +66,78 @@ export function NodePool({ nodes, className }: NodePoolProps) {
         </CardTitle>
       </CardHeader>
       <CardContent className="pt-0 pb-3">
-        <div
-          className="inline-grid gap-0.5"
-          style={{
-            gridTemplateColumns: `repeat(${cols}, ${dotSize}px)`,
-          }}
-        >
-          {nodeStates.map((node, idx) => (
+        {/* Node list with cell ownership */}
+        <div className="space-y-1 max-h-32 overflow-y-auto">
+          {nodeData.map((node) => (
             <div
-              key={`${node.id}-${idx}`}
+              key={node.id}
               className={twMerge(
-                "rounded-sm transition-all",
-                getStateColor(node.state),
-                node.state === "working" && "shadow-[0_0_4px_var(--sys-tee)]",
+                "flex items-center gap-2 p-1.5 rounded text-[10px] transition-colors",
+                "bg-zinc-900/50 hover:bg-zinc-800/50",
+                node.state === "offline" && "opacity-50",
               )}
-              style={{ width: dotSize, height: dotSize }}
-              title={`${node.id} • ${node.state} • ${node.workers.active}/${node.workers.total} workers`}
-            />
+            >
+              {/* Status dot */}
+              <div
+                className={twMerge(
+                  "w-2 h-2 rounded-full flex-shrink-0",
+                  getStateColor(node.state),
+                  node.state === "working" && "shadow-[0_0_4px_var(--sys-tee)]",
+                )}
+              />
+
+              {/* Node ID */}
+              <span className="text-zinc-300 font-mono truncate min-w-0 flex-1">
+                {node.id}
+              </span>
+
+              {/* Cell ownership indicator */}
+              <div
+                className="flex items-center gap-1 text-zinc-500"
+                title={`Owns cells: ${node.ownedCells.slice(0, 10).join(", ")}${node.ownedCells.length > 10 ? "..." : ""}`}
+              >
+                <Database className="w-3 h-3" />
+                <span className="font-mono">
+                  {node.cellCount}/{TOTAL_CELLS}
+                </span>
+              </div>
+
+              {/* Claimed events */}
+              {node.claimedEvents > 0 && (
+                <span className="text-[var(--sys-accent)] font-mono">
+                  {node.claimedEvents} claimed
+                </span>
+              )}
+
+              {/* Throughput */}
+              <span className="text-[var(--sys-success)] font-mono w-16 text-right">
+                {node.throughput.toLocaleString()} op/s
+              </span>
+            </div>
           ))}
         </div>
 
         {/* Stats Row */}
-        <div className="flex items-center gap-4 mt-3 pt-2 border-t border-zinc-800/50 text-[10px]">
-          <div className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-sm bg-[var(--sys-tee)]" />
-            <span className="text-zinc-400">Working</span>
-            <span className="text-white font-mono">{workingCount}</span>
+        <div className="flex items-center justify-between mt-3 pt-2 border-t border-zinc-800/50 text-[10px]">
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-[var(--sys-tee)]" />
+              <span className="text-zinc-400">Working</span>
+              <span className="text-white font-mono">{workingCount}</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-zinc-700" />
+              <span className="text-zinc-400">Idle</span>
+              <span className="text-white font-mono">
+                {nodes.length - workingCount}
+              </span>
+            </div>
           </div>
-          <div className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-sm bg-[var(--sys-warn)]" />
-            <span className="text-zinc-400">Attesting</span>
-            <span className="text-white font-mono">{attestingCount}</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-sm bg-zinc-700" />
-            <span className="text-zinc-400">Idle</span>
-            <span className="text-white font-mono">
-              {nodes.length - workingCount - attestingCount}
+          {totalClaimed > 0 && (
+            <span className="text-[var(--sys-accent)]">
+              {totalClaimed} events claimed
             </span>
-          </div>
+          )}
         </div>
       </CardContent>
     </Card>

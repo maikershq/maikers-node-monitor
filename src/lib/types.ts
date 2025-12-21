@@ -1,4 +1,11 @@
 export type NodeStatus = "healthy" | "degraded" | "offline";
+export type EventStatus =
+  | "pending"
+  | "claimed"
+  | "processing"
+  | "complete"
+  | "failed";
+export type CellRole = "primary" | "replica";
 
 export interface NodeMetrics {
   nodeId: string;
@@ -18,12 +25,21 @@ export interface NodeMetrics {
   lastUpdate: number;
   status: NodeStatus;
   packetLoss: number;
+  // Sharded replication fields
+  ownedCells: number[]; // Cell IDs this node owns
+  claimedEvents: number; // Events currently claimed by this node
 }
 
 export interface CellMetrics {
   id: number;
   signal: number;
   queueDepth: number;
+  // Sharded replication fields
+  role?: CellRole;
+  replicas?: string[]; // PeerIds of replica nodes
+  version?: number; // Lamport clock
+  pendingEvents?: number;
+  claimedEvents?: number;
 }
 
 export interface WorkerMetrics {
@@ -48,6 +64,10 @@ export interface NetworkStats {
   totalCells: number;
   attestedNodes: number;
   secureNodes: number;
+  // Cluster health
+  replicationFactor: number;
+  healthyCells: number; // Cells with full RF
+  degradedCells: number; // Cells with < RF replicas
 }
 
 export interface TimeSeriesPoint {
@@ -57,3 +77,22 @@ export interface TimeSeriesPoint {
   latencyP99: number;
   activeWorkers: number;
 }
+
+// Global cell view (aggregated from all nodes)
+export interface GlobalCell {
+  id: number;
+  replicas: Array<{
+    nodeId: string;
+    role: CellRole;
+    signal: number;
+    queueDepth: number;
+    status: NodeStatus;
+  }>;
+  totalSignal: number;
+  totalQueueDepth: number;
+  replicationCount: number;
+  healthy: boolean;
+}
+
+export const TOTAL_CELLS = 64;
+export const DEFAULT_REPLICATION_FACTOR = 3;

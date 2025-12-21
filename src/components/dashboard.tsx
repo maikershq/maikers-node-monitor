@@ -10,9 +10,11 @@ import { EndpointManager } from "./endpoint-manager";
 import { GlobalCellFabric } from "./global-cell-fabric";
 import { NodePool } from "./node-pool";
 import { LatencyHistogram } from "./latency-histogram";
+import { ClusterStatus } from "./cluster-status";
 import { useNodes } from "@/hooks/useNodes";
 import { formatNumber, formatLatency } from "@/lib/utils";
 import type { NetworkStats } from "@/lib/types";
+import { TOTAL_CELLS, DEFAULT_REPLICATION_FACTOR } from "@/lib/types";
 import {
   Activity,
   Cpu,
@@ -48,9 +50,12 @@ export function Dashboard() {
         activeNodes: 0,
         totalThroughput: 0,
         avgLatencyP99: 0,
-        totalCells: 0,
+        totalCells: TOTAL_CELLS,
         attestedNodes: 0,
         secureNodes: 0,
+        replicationFactor: DEFAULT_REPLICATION_FACTOR,
+        healthyCells: 0,
+        degradedCells: 0,
       };
 
     const healthyNodes = nodes.filter((n) => n.status !== "offline");
@@ -62,16 +67,34 @@ export function Dashboard() {
         : 0;
     const attestedNodes = nodes.filter((n) => n.teeAttested).length;
     const secureNodes = nodes.filter((n) => n.secure).length;
-    const totalCells = nodes.reduce((s, n) => s + n.cells.length, 0);
+
+    // Calculate cell coverage for replication health
+    const cellCoverage = new Map<number, number>();
+    healthyNodes.forEach((node) => {
+      node.cells.forEach((cell) => {
+        const current = cellCoverage.get(cell.id) || 0;
+        cellCoverage.set(cell.id, current + 1);
+      });
+    });
+
+    const healthyCells = Array.from(cellCoverage.values()).filter(
+      (count) => count >= DEFAULT_REPLICATION_FACTOR,
+    ).length;
+    const degradedCells = Array.from(cellCoverage.values()).filter(
+      (count) => count > 0 && count < DEFAULT_REPLICATION_FACTOR,
+    ).length;
 
     return {
       totalNodes: nodes.length,
       activeNodes: healthyNodes.length,
       totalThroughput,
       avgLatencyP99,
-      totalCells,
+      totalCells: TOTAL_CELLS,
       attestedNodes,
       secureNodes,
+      replicationFactor: DEFAULT_REPLICATION_FACTOR,
+      healthyCells,
+      degradedCells,
     };
   }, [nodes]);
 
@@ -159,7 +182,7 @@ export function Dashboard() {
             <MetricCard
               label="Nodes"
               value={stats.totalNodes}
-              subValue={`${stats.attestedNodes} attested`}
+              subValue={`${stats.attestedNodes} TEE attested`}
               icon={<Server className="w-4 h-4" />}
             />
             <MetricCard
@@ -177,8 +200,9 @@ export function Dashboard() {
             />
             <MetricCard
               label="Cells"
-              value={formatNumber(stats.totalCells)}
-              subValue="shards"
+              value={`${stats.healthyCells}/${stats.totalCells}`}
+              subValue={`RF=${stats.replicationFactor}`}
+              trend={stats.degradedCells === 0 ? "up" : "down"}
               icon={<Cpu className="w-4 h-4" />}
             />
             <MetricCard
@@ -196,10 +220,22 @@ export function Dashboard() {
             />
           </div>
 
-          {/* Global Cell Fabric + Node Pool */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-6 animate-in">
-            <GlobalCellFabric nodes={nodes} />
-            <NodePool nodes={nodes} />
+          {/* Main Visualization Row: Cell Fabric + Stack + Node Pool */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 mb-6 animate-in">
+            {/* Global Cell Fabric - Main visualization */}
+            <div className="lg:col-span-5">
+              <GlobalCellFabric nodes={nodes} />
+            </div>
+
+            {/* Architecture Stack */}
+            <div className="lg:col-span-3">
+              <ClusterStatus nodes={nodes} />
+            </div>
+
+            {/* Node Pool */}
+            <div className="lg:col-span-4">
+              <NodePool nodes={nodes} />
+            </div>
           </div>
 
           {/* Charts Row */}
@@ -212,7 +248,7 @@ export function Dashboard() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="pt-0 pb-3">
-                <div className="h-36">
+                <div className="h-32">
                   <ThroughputChart data={timeSeries} />
                 </div>
               </CardContent>
@@ -226,7 +262,7 @@ export function Dashboard() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="pt-0 pb-3">
-                <div className="h-36">
+                <div className="h-32">
                   <LatencyChart data={timeSeries} />
                 </div>
               </CardContent>
@@ -240,7 +276,7 @@ export function Dashboard() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="pt-0 pb-3">
-                <div className="h-36">
+                <div className="h-32">
                   <LatencyHistogram nodes={nodes} />
                 </div>
               </CardContent>

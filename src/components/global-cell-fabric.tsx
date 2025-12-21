@@ -3,7 +3,8 @@
 import { useMemo } from "react";
 import { twMerge } from "tailwind-merge";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
-import type { NodeMetrics, CellMetrics } from "@/lib/types";
+import type { NodeMetrics, GlobalCell } from "@/lib/types";
+import { TOTAL_CELLS, DEFAULT_REPLICATION_FACTOR } from "@/lib/types";
 import { Cpu } from "lucide-react";
 
 interface GlobalCellFabricProps {
@@ -11,24 +12,62 @@ interface GlobalCellFabricProps {
   className?: string;
 }
 
-interface AggregatedCell extends CellMetrics {
-  nodeId: string;
-}
-
 export function GlobalCellFabric({ nodes, className }: GlobalCellFabricProps) {
-  const allCells = useMemo<AggregatedCell[]>(() => {
-    return nodes.flatMap((node) =>
-      node.cells.map((cell) => ({ ...cell, nodeId: node.nodeId })),
-    );
+  // Aggregate cells from all nodes into global view
+  const globalCells = useMemo<GlobalCell[]>(() => {
+    const cellMap = new Map<number, GlobalCell>();
+
+    // Initialize all 64 cells
+    for (let i = 0; i < TOTAL_CELLS; i++) {
+      cellMap.set(i, {
+        id: i,
+        replicas: [],
+        totalSignal: 0,
+        totalQueueDepth: 0,
+        replicationCount: 0,
+        healthy: false,
+      });
+    }
+
+    // Aggregate from nodes
+    nodes.forEach((node) => {
+      node.cells.forEach((cell) => {
+        const global = cellMap.get(cell.id);
+        if (global) {
+          global.replicas.push({
+            nodeId: node.nodeId,
+            role: cell.role || "replica",
+            signal: cell.signal,
+            queueDepth: cell.queueDepth,
+            status: node.status,
+          });
+          global.totalSignal += cell.signal;
+          global.totalQueueDepth += cell.queueDepth;
+          global.replicationCount++;
+        }
+      });
+    });
+
+    // Calculate health
+    cellMap.forEach((cell) => {
+      cell.healthy = cell.replicationCount >= DEFAULT_REPLICATION_FACTOR;
+      if (cell.replicationCount > 0) {
+        cell.totalSignal = cell.totalSignal / cell.replicationCount;
+      }
+    });
+
+    return Array.from(cellMap.values()).sort((a, b) => a.id - b.id);
   }, [nodes]);
 
-  const cols = Math.max(8, Math.ceil(Math.sqrt(allCells.length)));
-  const cellSize = allCells.length > 256 ? 6 : allCells.length > 100 ? 8 : 10;
+  const healthyCells = globalCells.filter((c) => c.healthy).length;
+  const degradedCells = globalCells.filter(
+    (c) => c.replicationCount > 0 && !c.healthy,
+  ).length;
+  const avgLoad =
+    globalCells.reduce((s, c) => s + c.totalSignal, 0) / TOTAL_CELLS;
 
-  const avgSignal =
-    allCells.length > 0
-      ? allCells.reduce((s, c) => s + c.signal, 0) / allCells.length
-      : 0;
+  const cols = 8; // 8x8 grid for 64 cells
+  const cellSize = 20;
 
   return (
     <Card className={twMerge("monitor-card", className)}>
@@ -36,74 +75,119 @@ export function GlobalCellFabric({ nodes, className }: GlobalCellFabricProps) {
         <CardTitle className="flex items-center justify-between text-sm font-medium">
           <div className="flex items-center gap-2">
             <Cpu className="w-3.5 h-3.5 text-[var(--sys-tee)]" />
-            Cell Fabric
+            Global Cell Fabric
           </div>
-          <div className="flex items-center gap-3 text-[10px] font-normal text-zinc-500">
-            <span>{allCells.length} shards</span>
+          <div className="flex items-center gap-3 text-[10px] font-normal">
+            <span className="text-[var(--sys-success)]">
+              {healthyCells} healthy
+            </span>
+            {degradedCells > 0 && (
+              <span className="text-[var(--sys-warn)]">
+                {degradedCells} degraded
+              </span>
+            )}
             <span
               className={twMerge(
                 "font-mono",
-                avgSignal > 80
+                avgLoad > 80
                   ? "text-[var(--sys-danger)]"
-                  : avgSignal > 50
+                  : avgLoad > 50
                     ? "text-[var(--sys-warn)]"
-                    : "text-[var(--sys-success)]",
+                    : "text-zinc-500",
               )}
             >
-              {avgSignal.toFixed(0)}% load
+              {avgLoad.toFixed(0)}% load
             </span>
           </div>
         </CardTitle>
       </CardHeader>
       <CardContent className="pt-0 pb-3">
         <div
-          className="inline-grid gap-px rounded overflow-hidden"
+          className="inline-grid gap-0.5 rounded overflow-hidden p-1"
           style={{
             gridTemplateColumns: `repeat(${cols}, ${cellSize}px)`,
-            backgroundColor: "#27272a",
+            backgroundColor: "#0a0a0c",
           }}
         >
-          {allCells.map((cell, idx) => {
-            const intensity = cell.signal / 100;
+          {globalCells.map((cell) => {
+            const intensity = cell.totalSignal / 100;
             const hue = 260 - intensity * 30;
-            const alpha = 0.08 + intensity * 0.4;
-            const isHighLoad = cell.signal > 80;
+            const alpha = 0.1 + intensity * 0.5;
+            const isHighLoad = cell.totalSignal > 80;
+            const isDegraded = !cell.healthy && cell.replicationCount > 0;
+            const isEmpty = cell.replicationCount === 0;
 
             return (
               <div
-                key={`${cell.nodeId}-${cell.id}-${idx}`}
+                key={cell.id}
                 className={twMerge(
-                  "cell-shard cursor-crosshair",
+                  "relative cursor-crosshair transition-all rounded-sm",
                   isHighLoad && "animate-pulse",
+                  isDegraded && "ring-1 ring-[var(--sys-warn)]/50",
                 )}
                 style={{
                   width: cellSize,
                   height: cellSize,
-                  backgroundColor:
-                    intensity > 0.02
-                      ? `hsla(${hue}, 60%, 50%, ${alpha})`
-                      : "#18181b",
+                  backgroundColor: isEmpty
+                    ? "#18181b"
+                    : `hsla(${hue}, 60%, 50%, ${alpha})`,
                 }}
-                title={`${cell.nodeId} Cell ${cell.id} • Signal: ${Math.round(cell.signal)}%`}
-              />
+                title={`Cell ${cell.id} • RF: ${cell.replicationCount}/${DEFAULT_REPLICATION_FACTOR} • Signal: ${Math.round(cell.totalSignal)}% • Queue: ${cell.totalQueueDepth}`}
+              >
+                {/* Replication indicator dots */}
+                <div className="absolute bottom-0.5 left-0.5 flex gap-px">
+                  {Array.from({ length: DEFAULT_REPLICATION_FACTOR }).map(
+                    (_, i) => (
+                      <div
+                        key={i}
+                        className={twMerge(
+                          "w-1 h-1 rounded-full",
+                          i < cell.replicationCount
+                            ? "bg-[var(--sys-success)]"
+                            : "bg-zinc-700",
+                        )}
+                      />
+                    ),
+                  )}
+                </div>
+
+                {/* Queue depth indicator */}
+                {cell.totalQueueDepth > 0 && (
+                  <div className="absolute top-0.5 right-0.5">
+                    <div
+                      className={twMerge(
+                        "w-1.5 h-1.5 rounded-full",
+                        cell.totalQueueDepth > 10
+                          ? "bg-[var(--sys-danger)]"
+                          : cell.totalQueueDepth > 5
+                            ? "bg-[var(--sys-warn)]"
+                            : "bg-[var(--sys-accent)]",
+                      )}
+                    />
+                  </div>
+                )}
+              </div>
             );
           })}
         </div>
 
         {/* Legend */}
-        <div className="flex items-center gap-4 mt-2 text-[9px] text-zinc-600">
-          <div className="flex items-center gap-1">
-            <span className="w-2 h-2 rounded bg-[hsla(260,60%,50%,0.1)]" />
-            Low
+        <div className="flex items-center justify-between mt-2 text-[9px] text-zinc-600">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1">
+              <div className="flex gap-px">
+                <span className="w-1 h-1 rounded-full bg-[var(--sys-success)]" />
+                <span className="w-1 h-1 rounded-full bg-[var(--sys-success)]" />
+                <span className="w-1 h-1 rounded-full bg-[var(--sys-success)]" />
+              </div>
+              <span>RF={DEFAULT_REPLICATION_FACTOR}</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <span className="w-2 h-2 rounded-sm ring-1 ring-[var(--sys-warn)]/50 bg-zinc-800" />
+              <span>Degraded</span>
+            </div>
           </div>
-          <div className="flex items-center gap-1">
-            <span className="w-2 h-2 rounded bg-[hsla(245,60%,50%,0.3)]" />
-            Medium
-          </div>
-          <div className="flex items-center gap-1">
-            <span className="w-2 h-2 rounded bg-[hsla(230,60%,50%,0.5)]" />
-            High
-          </div>
+          <span className="font-mono">{TOTAL_CELLS} shards</span>
         </div>
       </CardContent>
     </Card>
