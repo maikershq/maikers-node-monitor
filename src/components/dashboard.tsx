@@ -124,13 +124,8 @@ export function Dashboard() {
             }`}
           />
           <div>
-            <h1 className="text-lg md:text-xl font-heading font-bold flex items-center gap-2">
+            <h1 className="text-lg md:text-xl font-heading font-bold">
               maikers nodes
-              {stats.activeNodes > 0 && (
-                <span className="text-[10px] bg-[var(--sys-tee)]/20 text-[var(--sys-tee)] px-2 py-0.5 rounded border border-[var(--sys-tee)]/30">
-                  TEE Protected
-                </span>
-              )}
             </h1>
             <p className="text-[10px] text-zinc-500">
               Live network discovery
