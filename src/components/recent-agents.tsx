@@ -65,47 +65,58 @@ const MOCK_AGENTS: Agent[] = [
 
 type SortField = "name" | "type" | "status" | "nodeId" | "timestamp";
 type SortDirection = "asc" | "desc";
+type TypeFilter = "all" | "search" | "transaction" | "monitor" | "creation";
+type StatusFilter = "all" | "active" | "idle" | "failed";
 
 export function RecentAgents() {
   const [sortField, setSortField] = useState<SortField>("timestamp");
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
+  const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
 
-  const sortedAgents = useMemo(() => {
-    return [...MOCK_AGENTS].sort((a, b) => {
-      let valA: string | number;
-      let valB: string | number;
+  const filteredAndSortedAgents = useMemo(() => {
+    return [...MOCK_AGENTS]
+      .filter((agent) => {
+        if (typeFilter !== "all" && agent.type !== typeFilter) return false;
+        if (statusFilter !== "all" && agent.status !== statusFilter)
+          return false;
+        return true;
+      })
+      .sort((a, b) => {
+        let valA: string | number;
+        let valB: string | number;
 
-      switch (sortField) {
-        case "name":
-          valA = a.name.toLowerCase();
-          valB = b.name.toLowerCase();
-          break;
-        case "type":
-          valA = a.type;
-          valB = b.type;
-          break;
-        case "status":
-          const statusOrder = { active: 0, idle: 1, failed: 2 };
-          valA = statusOrder[a.status];
-          valB = statusOrder[b.status];
-          break;
-        case "nodeId":
-          valA = a.nodeId;
-          valB = b.nodeId;
-          break;
-        case "timestamp":
-          valA = a.timestamp;
-          valB = b.timestamp;
-          break;
-        default:
-          return 0;
-      }
+        switch (sortField) {
+          case "name":
+            valA = a.name.toLowerCase();
+            valB = b.name.toLowerCase();
+            break;
+          case "type":
+            valA = a.type;
+            valB = b.type;
+            break;
+          case "status":
+            const statusOrder = { active: 0, idle: 1, failed: 2 };
+            valA = statusOrder[a.status];
+            valB = statusOrder[b.status];
+            break;
+          case "nodeId":
+            valA = a.nodeId;
+            valB = b.nodeId;
+            break;
+          case "timestamp":
+            valA = a.timestamp;
+            valB = b.timestamp;
+            break;
+          default:
+            return 0;
+        }
 
-      if (valA < valB) return sortDirection === "asc" ? -1 : 1;
-      if (valA > valB) return sortDirection === "asc" ? 1 : -1;
-      return 0;
-    });
-  }, [sortField, sortDirection]);
+        if (valA < valB) return sortDirection === "asc" ? -1 : 1;
+        if (valA > valB) return sortDirection === "asc" ? 1 : -1;
+        return 0;
+      });
+  }, [sortField, sortDirection, typeFilter, statusFilter]);
 
   const toggleSort = (field: SortField) => {
     if (sortField === field) {
@@ -116,31 +127,34 @@ export function RecentAgents() {
     }
   };
 
-  const SortButton = ({
-    field,
+  const SortIcon = ({ field }: { field: SortField }) => {
+    if (sortField !== field)
+      return <ArrowUpDown className="w-3 h-3 opacity-30" />;
+    return sortDirection === "asc" ? (
+      <ArrowUp className="w-3 h-3" />
+    ) : (
+      <ArrowDown className="w-3 h-3" />
+    );
+  };
+
+  const FilterButton = ({
     label,
+    active,
+    onClick,
   }: {
-    field: SortField;
     label: string;
+    active: boolean;
+    onClick: () => void;
   }) => (
     <button
-      onClick={() => toggleSort(field)}
-      className={`flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
-        sortField === field
+      onClick={onClick}
+      className={`px-2.5 py-1 rounded-md text-[10px] font-medium transition-colors ${
+        active
           ? "bg-cyan-500/20 text-cyan-400"
-          : "bg-zinc-800/50 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200"
+          : "bg-zinc-800/50 text-zinc-500 hover:bg-zinc-800 hover:text-zinc-300"
       }`}
     >
       {label}
-      {sortField === field ? (
-        sortDirection === "asc" ? (
-          <ArrowUp className="w-3 h-3" />
-        ) : (
-          <ArrowDown className="w-3 h-3" />
-        )
-      ) : (
-        <ArrowUpDown className="w-3 h-3 opacity-50" />
-      )}
     </button>
   );
 
@@ -153,17 +167,63 @@ export function RecentAgents() {
           <Bot className="w-4 h-4" />
           Recent Agents
           <span className="text-zinc-600 font-normal">
-            ({sortedAgents.length})
+            ({filteredAndSortedAgents.length})
           </span>
         </h2>
 
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-xs text-zinc-500 mr-1">Sort by:</span>
-          <SortButton field="name" label="Name" />
-          <SortButton field="type" label="Type" />
-          <SortButton field="status" label="Status" />
-          <SortButton field="nodeId" label="Node" />
-          <SortButton field="timestamp" label="Time" />
+        <div className="flex items-center gap-4 flex-wrap">
+          <div className="flex items-center gap-1.5">
+            <span className="text-[10px] text-zinc-600 mr-1">Type:</span>
+            <FilterButton
+              label="All"
+              active={typeFilter === "all"}
+              onClick={() => setTypeFilter("all")}
+            />
+            <FilterButton
+              label="Search"
+              active={typeFilter === "search"}
+              onClick={() => setTypeFilter("search")}
+            />
+            <FilterButton
+              label="Tx"
+              active={typeFilter === "transaction"}
+              onClick={() => setTypeFilter("transaction")}
+            />
+            <FilterButton
+              label="Monitor"
+              active={typeFilter === "monitor"}
+              onClick={() => setTypeFilter("monitor")}
+            />
+            <FilterButton
+              label="Create"
+              active={typeFilter === "creation"}
+              onClick={() => setTypeFilter("creation")}
+            />
+          </div>
+
+          <div className="flex items-center gap-1.5">
+            <span className="text-[10px] text-zinc-600 mr-1">Status:</span>
+            <FilterButton
+              label="All"
+              active={statusFilter === "all"}
+              onClick={() => setStatusFilter("all")}
+            />
+            <FilterButton
+              label="Active"
+              active={statusFilter === "active"}
+              onClick={() => setStatusFilter("active")}
+            />
+            <FilterButton
+              label="Idle"
+              active={statusFilter === "idle"}
+              onClick={() => setStatusFilter("idle")}
+            />
+            <FilterButton
+              label="Failed"
+              active={statusFilter === "failed"}
+              onClick={() => setStatusFilter("failed")}
+            />
+          </div>
         </div>
       </div>
 
@@ -171,22 +231,46 @@ export function RecentAgents() {
         <Table>
           <TableHeader>
             <TableRow className="hover:bg-transparent border-zinc-800/50 bg-zinc-900/50">
-              <TableHead className="h-10 text-[10px] uppercase tracking-wider font-mono text-zinc-500">
-                Agent
+              <TableHead
+                onClick={() => toggleSort("name")}
+                className="h-10 text-[10px] uppercase tracking-wider font-mono text-zinc-500 cursor-pointer hover:text-zinc-300 transition-colors select-none"
+              >
+                <div className="flex items-center gap-1.5">
+                  Agent
+                  <SortIcon field="name" />
+                </div>
               </TableHead>
-              <TableHead className="h-10 text-[10px] uppercase tracking-wider font-mono text-zinc-500">
-                Type
+              <TableHead
+                onClick={() => toggleSort("type")}
+                className="h-10 text-[10px] uppercase tracking-wider font-mono text-zinc-500 cursor-pointer hover:text-zinc-300 transition-colors select-none"
+              >
+                <div className="flex items-center gap-1.5">
+                  Type
+                  <SortIcon field="type" />
+                </div>
               </TableHead>
-              <TableHead className="h-10 text-[10px] uppercase tracking-wider font-mono text-zinc-500">
-                Status
+              <TableHead
+                onClick={() => toggleSort("status")}
+                className="h-10 text-[10px] uppercase tracking-wider font-mono text-zinc-500 cursor-pointer hover:text-zinc-300 transition-colors select-none"
+              >
+                <div className="flex items-center gap-1.5">
+                  Status
+                  <SortIcon field="status" />
+                </div>
               </TableHead>
-              <TableHead className="h-10 text-[10px] uppercase tracking-wider font-mono text-zinc-500 text-right">
-                Node
+              <TableHead
+                onClick={() => toggleSort("nodeId")}
+                className="h-10 text-[10px] uppercase tracking-wider font-mono text-zinc-500 cursor-pointer hover:text-zinc-300 transition-colors select-none text-right"
+              >
+                <div className="flex items-center gap-1.5 justify-end">
+                  Node
+                  <SortIcon field="nodeId" />
+                </div>
               </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {sortedAgents.map((agent) => (
+            {filteredAndSortedAgents.map((agent) => (
               <TableRow
                 key={agent.id}
                 className="hover:bg-zinc-800/30 border-zinc-800/50 transition-colors"
