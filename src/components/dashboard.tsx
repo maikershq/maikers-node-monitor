@@ -7,6 +7,9 @@ import { VirtualizedNodeGrid } from "./virtualized-node-grid";
 import { LatencyChart } from "./latency-chart";
 import { ThroughputChart } from "./throughput-chart";
 import { EndpointManager } from "./endpoint-manager";
+import { GlobalCellFabric } from "./global-cell-fabric";
+import { NodePool } from "./node-pool";
+import { LatencyHistogram } from "./latency-histogram";
 import { useNodes } from "@/hooks/useNodes";
 import { formatNumber, formatLatency } from "@/lib/utils";
 import type { NetworkStats } from "@/lib/types";
@@ -193,7 +196,14 @@ export function Dashboard() {
             />
           </div>
 
+          {/* Global Cell Fabric + Node Pool */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-6 animate-in">
+            <GlobalCellFabric nodes={nodes} />
+            <NodePool nodes={nodes} />
+          </div>
+
+          {/* Charts Row */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 mb-6 animate-in">
             <Card className="monitor-card">
               <CardHeader className="pb-2 pt-3">
                 <CardTitle className="flex items-center gap-2 text-sm font-medium">
@@ -202,7 +212,7 @@ export function Dashboard() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="pt-0 pb-3">
-                <div className="h-40">
+                <div className="h-36">
                   <ThroughputChart data={timeSeries} />
                 </div>
               </CardContent>
@@ -212,12 +222,26 @@ export function Dashboard() {
               <CardHeader className="pb-2 pt-3">
                 <CardTitle className="flex items-center gap-2 text-sm font-medium">
                   <Clock className="w-3.5 h-3.5 text-[var(--sys-success)]" />
+                  Latency Timeline
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0 pb-3">
+                <div className="h-36">
+                  <LatencyChart data={timeSeries} />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="monitor-card">
+              <CardHeader className="pb-2 pt-3">
+                <CardTitle className="flex items-center gap-2 text-sm font-medium">
+                  <Activity className="w-3.5 h-3.5 text-[var(--sys-warn)]" />
                   Latency Distribution
                 </CardTitle>
               </CardHeader>
               <CardContent className="pt-0 pb-3">
-                <div className="h-40">
-                  <LatencyChart data={timeSeries} />
+                <div className="h-36">
+                  <LatencyHistogram nodes={nodes} />
                 </div>
               </CardContent>
             </Card>
