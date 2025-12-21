@@ -199,6 +199,8 @@ export class NodeDiscovery {
       teeAttested: false,
       uptime: 0,
       cells: [],
+      ownedCells: [],
+      claimedEvents: 0,
       workers: { active: 0, total: 0, max: 0 },
       latency: { p50: 0, p95: 0, p99: 0, avg: 0, samples: 0 },
       throughput: 0,
@@ -223,6 +225,8 @@ export class NodeDiscovery {
       teeAttested: (raw.teeAttested as boolean) || false,
       uptime: (raw.uptime as number) || 0,
       cells: (raw.cells as NodeMetrics["cells"]) || [],
+      ownedCells: (raw.ownedCells as number[]) || [],
+      claimedEvents: (raw.claimedEvents as number) || 0,
       workers: (raw.workers as NodeMetrics["workers"]) || {
         active: 0,
         total: 0,
