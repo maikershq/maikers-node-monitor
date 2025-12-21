@@ -19,6 +19,20 @@ export class NodeDiscovery {
   private onUpdate: ((nodes: NodeMetrics[]) => void) | null = null;
 
   constructor() {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("discoveredEndpoints");
+      if (saved) {
+        try {
+          const endpoints = JSON.parse(saved);
+          if (Array.isArray(endpoints)) {
+            endpoints.forEach((ep) => this.discoveredEndpoints.add(ep));
+          }
+        } catch (e) {
+          console.warn("Failed to load saved endpoints", e);
+        }
+      }
+    }
+
     // Add default localhost ports
     for (let port = SCAN_PORT_START; port <= SCAN_PORT_END; port++) {
       // We don't add them to discoveredEndpoints yet, scanForNodes will validate them
@@ -31,6 +45,7 @@ export class NodeDiscovery {
     
     if (!this.discoveredEndpoints.has(normalized)) {
       this.discoveredEndpoints.add(normalized);
+      this.saveEndpoints();
       // Try to connect immediately
       await this.refreshNodes();
     }
@@ -39,9 +54,19 @@ export class NodeDiscovery {
   removeEndpoint(endpoint: string) {
     this.discoveredEndpoints.delete(endpoint);
     this.connections.delete(endpoint);
+    this.saveEndpoints();
     // Notify update to remove it from UI
     if (this.onUpdate) {
       this.refreshNodes();
+    }
+  }
+
+  private saveEndpoints() {
+    if (typeof window !== "undefined") {
+      localStorage.setItem(
+        "discoveredEndpoints",
+        JSON.stringify(Array.from(this.discoveredEndpoints)),
+      );
     }
   }
 
