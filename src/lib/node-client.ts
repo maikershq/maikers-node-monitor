@@ -162,16 +162,21 @@ export class NodeDiscovery {
           lastSeen: Date.now(),
         });
       } else {
-        // Fetch failed
+        // Fetch failed - show as offline
         const cached = this.endpointMetrics.get(endpoint);
-        if (cached) {
-          // Use cached data but mark as offline
-          const offlineNode: NodeMetrics = {
-            ...cached,
-            status: "offline",
-            lastUpdate: Date.now(), // Update time to show it's a current check result
-          };
-          addToMap(offlineNode);
+        const offlineNode: NodeMetrics = cached
+          ? {
+              ...cached,
+              status: "offline",
+              lastUpdate: Date.now(),
+            }
+          : this.createOfflinePlaceholder(endpoint);
+
+        addToMap(offlineNode);
+
+        // Store placeholder in cache so it persists
+        if (!cached) {
+          this.endpointMetrics.set(endpoint, offlineNode);
         }
 
         const existing = this.connections.get(endpoint);
@@ -180,7 +185,7 @@ export class NodeDiscovery {
         } else {
           this.connections.set(endpoint, {
             endpoint,
-            nodeId: "unknown",
+            nodeId: offlineNode.nodeId,
             connected: false,
             lastSeen: 0,
           });
@@ -216,6 +221,35 @@ export class NodeDiscovery {
       console.warn(`Failed to fetch metrics from ${endpoint}:`, e);
       return null;
     }
+  }
+
+  private createOfflinePlaceholder(endpoint: string): NodeMetrics {
+    // Extract a readable name from the endpoint
+    const urlParts = endpoint.replace(/https?:\/\//, "").split(/[:.]/);
+    const nodeId =
+      urlParts[0] === "localhost"
+        ? `localhost:${urlParts[1] || "8080"}`
+        : urlParts[0];
+
+    return {
+      nodeId,
+      peerId: "unknown",
+      secure: false,
+      teePlatform: null,
+      teeAttested: false,
+      uptime: 0,
+      cells: [],
+      workers: { active: 0, total: 0, max: 0 },
+      latency: { p50: 0, p95: 0, p99: 0, avg: 0, samples: 0 },
+      throughput: 0,
+      tasksProcessed: 0,
+      tasksFailed: 0,
+      fuelConsumed: 0,
+      peers: [],
+      lastUpdate: Date.now(),
+      status: "offline",
+      packetLoss: 0,
+    };
   }
 
   private parseNodeMetrics(data: unknown, endpoint: string): NodeMetrics {
