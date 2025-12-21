@@ -253,42 +253,42 @@ export function Dashboard() {
             {/* Right Column: Group 2 (Charts) */}
             <div className="lg:col-span-3 h-full flex flex-col gap-3">
               <Card className="monitor-card flex-1 min-h-0 flex flex-col">
-                <CardHeader className="pb-1 pt-3 px-4 flex-none">
+                <CardHeader className="pb-1 pt-3 px-3 flex-none">
                   <CardTitle className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-zinc-400">
                     <Zap className="w-3 h-3 text-[var(--sys-accent)]" />
                     Throughput
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="pt-0 pb-3 px-4 flex-1 min-h-0">
-                  <div className="h-full">
+                <CardContent className="pt-0 pb-2 px-3 flex-1 min-h-0">
+                  <div className="h-full w-full">
                     <ThroughputChart data={timeSeries} />
                   </div>
                 </CardContent>
               </Card>
 
               <Card className="monitor-card flex-1 min-h-0 flex flex-col">
-                <CardHeader className="pb-1 pt-3 px-4 flex-none">
+                <CardHeader className="pb-1 pt-3 px-3 flex-none">
                   <CardTitle className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-zinc-400">
                     <Clock className="w-3 h-3 text-[var(--sys-success)]" />
                     Latency Timeline
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="pt-0 pb-3 px-4 flex-1 min-h-0">
-                  <div className="h-full">
+                <CardContent className="pt-0 pb-2 px-3 flex-1 min-h-0">
+                  <div className="h-full w-full">
                     <LatencyChart data={timeSeries} />
                   </div>
                 </CardContent>
               </Card>
 
               <Card className="monitor-card flex-1 min-h-0 flex flex-col">
-                <CardHeader className="pb-1 pt-3 px-4 flex-none">
+                <CardHeader className="pb-1 pt-3 px-3 flex-none">
                   <CardTitle className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-zinc-400">
                     <Activity className="w-3 h-3 text-[var(--sys-warn)]" />
                     Latency Distribution
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="pt-0 pb-3 px-4 flex-1 min-h-0">
-                  <div className="h-full">
+                <CardContent className="pt-0 pb-2 px-3 flex-1 min-h-0">
+                  <div className="h-full w-full">
                     <LatencyHistogram nodes={nodes} />
                   </div>
                 </CardContent>
