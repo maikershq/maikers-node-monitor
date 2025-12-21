@@ -131,11 +131,20 @@ export class NodeDiscovery {
 
       let added = false;
       for (const node of nodes) {
-        const endpoint = node.endpoint || node.url;
-        const fallbackHost = node.host || node.nodeId;
+        let resolved: string | null = null;
 
-        const resolved =
-          endpoint || (fallbackHost ? `https://${fallbackHost}` : null);
+        // Priority 1: explicit endpoint or url
+        if (node.endpoint || node.url) {
+          resolved = node.endpoint || node.url;
+        }
+        // Priority 2: ip + http_port (registry format)
+        else if (node.ip && node.http_port) {
+          resolved = `http://${node.ip}:${node.http_port}`;
+        }
+        // Priority 3: host or nodeId fallback
+        else if (node.host || node.nodeId) {
+          resolved = `https://${node.host || node.nodeId}`;
+        }
 
         if (resolved && !this.discoveredEndpoints.has(resolved)) {
           this.discoveredEndpoints.add(resolved);
