@@ -63,6 +63,36 @@ export class NodeDiscovery {
     }
   }
 
+  removeOfflineNodes(): number {
+    const offlineEndpoints: string[] = [];
+
+    this.connections.forEach((conn, endpoint) => {
+      if (!conn.connected) {
+        offlineEndpoints.push(endpoint);
+      }
+    });
+
+    offlineEndpoints.forEach((endpoint) => {
+      this.discoveredEndpoints.delete(endpoint);
+      this.connections.delete(endpoint);
+      this.nodesByEndpoint.delete(endpoint);
+    });
+
+    if (offlineEndpoints.length > 0) {
+      this.saveEndpoints();
+      if (this.onUpdate) {
+        this.refreshNodes();
+      }
+    }
+
+    return offlineEndpoints.length;
+  }
+
+  getOfflineCount(): number {
+    return Array.from(this.connections.values()).filter((c) => !c.connected)
+      .length;
+  }
+
   private saveEndpoints() {
     if (typeof window !== "undefined") {
       localStorage.setItem(
@@ -99,15 +129,23 @@ export class NodeDiscovery {
       const data = await response.json();
       const nodes = Array.isArray(data) ? data : data.nodes || [];
 
+      let added = false;
       for (const node of nodes) {
-        const endpoint =
-          node.endpoint || node.url || `https://${node.host || node.nodeId}`;
-        if (endpoint && !this.discoveredEndpoints.has(endpoint)) {
-          this.discoveredEndpoints.add(endpoint);
+        const endpoint = node.endpoint || node.url;
+        const fallbackHost = node.host || node.nodeId;
+
+        const resolved =
+          endpoint || (fallbackHost ? `https://${fallbackHost}` : null);
+
+        if (resolved && !this.discoveredEndpoints.has(resolved)) {
+          this.discoveredEndpoints.add(resolved);
+          added = true;
         }
       }
 
-      this.saveEndpoints();
+      if (added) {
+        this.saveEndpoints();
+      }
     } catch (err) {
       console.warn("Failed to fetch from registry:", err);
     }
@@ -266,7 +304,11 @@ export class NodeDiscovery {
     };
   }
 
-  startPolling(intervalMs: number, onUpdate: (nodes: NodeMetrics[]) => void) {
+  startPolling(
+    intervalMs: number,
+    onUpdate: (nodes: NodeMetrics[]) => void,
+    scanIntervalMs: number = 60000,
+  ) {
     this.onUpdate = onUpdate;
 
     if (this.pollingInterval) clearInterval(this.pollingInterval);
@@ -275,8 +317,8 @@ export class NodeDiscovery {
     // Initial scan
     this.scanForNodes();
 
-    // Re-scan for new nodes every 30 seconds
-    this.scanInterval = setInterval(() => this.scanForNodes(), 30000);
+    // Re-scan registry for new nodes at configured interval
+    this.scanInterval = setInterval(() => this.scanForNodes(), scanIntervalMs);
 
     // Poll known nodes at requested interval
     this.pollingInterval = setInterval(() => this.refreshNodes(), intervalMs);
