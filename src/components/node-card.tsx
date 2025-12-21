@@ -16,6 +16,7 @@ import {
   Database,
   Copy,
   Check,
+  ExternalLink,
 } from "lucide-react";
 
 function CellDotsLine({ cells }: { cells: CellMetrics[] }) {
@@ -57,6 +58,20 @@ function CellDotsLine({ cells }: { cells: CellMetrics[] }) {
 interface NodeCardProps {
   node: NodeMetrics;
   className?: string;
+}
+
+function formatEndpoint(endpoint: string): string {
+  try {
+    const url = new URL(endpoint);
+    const host = url.hostname;
+    const port = url.port;
+    if (!port || port === "443" || port === "80") {
+      return host;
+    }
+    return `${host}:${port}`;
+  } catch {
+    return endpoint.replace(/https?:\/\//, "");
+  }
 }
 
 function getStatusIndicator(status: NodeStatus) {
@@ -170,12 +185,25 @@ function NodeCardComponent({ node, className }: NodeCardProps) {
           )}
         </div>
         <div className="flex items-center justify-between mt-1">
-          <p
-            className="text-[10px] text-zinc-600 font-mono truncate flex-1 cursor-default"
-            title={node.peerId}
-          >
-            {node.peerId}
-          </p>
+          {node.endpoint ? (
+            <a
+              href={node.endpoint}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[10px] text-zinc-500 font-mono truncate flex-1 hover:text-[var(--sys-accent)] transition-colors inline-flex items-center gap-1"
+              title={node.endpoint}
+            >
+              {formatEndpoint(node.endpoint)}
+              <ExternalLink className="w-2.5 h-2.5 flex-shrink-0" />
+            </a>
+          ) : (
+            <p
+              className="text-[10px] text-zinc-600 font-mono truncate flex-1 cursor-default"
+              title={node.peerId}
+            >
+              {node.peerId}
+            </p>
+          )}
           {node.packetLoss > 0 && node.status !== "offline" && (
             <span className="text-[9px] text-red-400 ml-2 whitespace-nowrap">
               {Math.round(node.packetLoss * 100)}% loss
