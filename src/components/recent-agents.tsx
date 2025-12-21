@@ -9,7 +9,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Bot, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { Bot, ArrowUpDown, ArrowUp, ArrowDown, Search } from "lucide-react";
 
 interface Agent {
   pubkey: string;
@@ -73,22 +73,49 @@ const MOCK_AGENTS: Agent[] = isDev
 
 type SortField = "name" | "collection" | "duration" | "nodeId" | "timestamp";
 type SortDirection = "asc" | "desc";
+type DurationFilter = "all" | "fast" | "medium" | "slow";
 
 export function RecentAgents() {
   const [sortField, setSortField] = useState<SortField>("timestamp");
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
+  const [agentSearch, setAgentSearch] = useState("");
   const [collectionFilter, setCollectionFilter] = useState<string>("all");
+  const [durationFilter, setDurationFilter] = useState<DurationFilter>("all");
+  const [nodeFilter, setNodeFilter] = useState<string>("all");
 
   const collections = useMemo(() => {
     const unique = [...new Set(MOCK_AGENTS.map((a) => a.collection))];
     return unique.sort();
   }, []);
 
+  const nodes = useMemo(() => {
+    const unique = [...new Set(MOCK_AGENTS.map((a) => a.nodeId))];
+    return unique.sort();
+  }, []);
+
   const filteredAndSortedAgents = useMemo(() => {
     return [...MOCK_AGENTS]
       .filter((agent) => {
+        if (agentSearch) {
+          const search = agentSearch.toLowerCase();
+          const matchesPubkey = agent.pubkey.toLowerCase().includes(search);
+          const matchesName = agent.name?.toLowerCase().includes(search);
+          if (!matchesPubkey && !matchesName) return false;
+        }
         if (collectionFilter !== "all" && agent.collection !== collectionFilter)
           return false;
+        if (durationFilter !== "all") {
+          if (durationFilter === "fast" && agent.durationMs >= 1000)
+            return false;
+          if (
+            durationFilter === "medium" &&
+            (agent.durationMs < 1000 || agent.durationMs >= 3000)
+          )
+            return false;
+          if (durationFilter === "slow" && agent.durationMs < 3000)
+            return false;
+        }
+        if (nodeFilter !== "all" && agent.nodeId !== nodeFilter) return false;
         return true;
       })
       .sort((a, b) => {
@@ -124,7 +151,14 @@ export function RecentAgents() {
         if (valA > valB) return sortDirection === "asc" ? 1 : -1;
         return 0;
       });
-  }, [sortField, sortDirection, collectionFilter]);
+  }, [
+    sortField,
+    sortDirection,
+    agentSearch,
+    collectionFilter,
+    durationFilter,
+    nodeFilter,
+  ]);
 
   const toggleSort = (field: SortField) => {
     if (sortField === field) {
@@ -156,7 +190,7 @@ export function RecentAgents() {
   }) => (
     <button
       onClick={onClick}
-      className={`px-2.5 py-1 rounded-md text-[10px] font-medium transition-colors ${
+      className={`px-2 py-1 rounded text-[10px] font-medium transition-colors ${
         active
           ? "bg-cyan-500/20 text-cyan-400"
           : "bg-zinc-800/50 text-zinc-500 hover:bg-zinc-800 hover:text-zinc-300"
@@ -175,30 +209,86 @@ export function RecentAgents() {
 
   return (
     <div>
-      <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
-        <h2 className="text-sm font-heading font-semibold text-zinc-400 flex items-center gap-2">
-          <Bot className="w-4 h-4" />
-          Recent Agents
-          <span className="text-zinc-600 font-normal">
-            ({filteredAndSortedAgents.length})
-          </span>
-        </h2>
+      <div className="flex flex-col gap-4 mb-6">
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-heading font-semibold text-zinc-400 flex items-center gap-2">
+            <Bot className="w-4 h-4" />
+            Recent Agents
+            <span className="text-zinc-600 font-normal">
+              ({filteredAndSortedAgents.length})
+            </span>
+          </h2>
+        </div>
 
-        <div className="flex items-center gap-1.5 flex-wrap">
-          <span className="text-[10px] text-zinc-600 mr-1">Collection:</span>
-          <FilterButton
-            label="All"
-            active={collectionFilter === "all"}
-            onClick={() => setCollectionFilter("all")}
-          />
-          {collections.map((c) => (
-            <FilterButton
-              key={c}
-              label={c}
-              active={collectionFilter === c}
-              onClick={() => setCollectionFilter(c)}
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="relative">
+            <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-zinc-600" />
+            <input
+              type="text"
+              placeholder="Agent address..."
+              value={agentSearch}
+              onChange={(e) => setAgentSearch(e.target.value)}
+              className="h-7 pl-7 pr-3 text-[10px] bg-zinc-900 border border-zinc-800 rounded text-zinc-300 placeholder:text-zinc-600 focus:outline-none focus:border-zinc-700 w-36"
             />
-          ))}
+          </div>
+
+          <div className="flex items-center gap-1">
+            <span className="text-[10px] text-zinc-600 mr-1">Collection:</span>
+            <FilterButton
+              label="All"
+              active={collectionFilter === "all"}
+              onClick={() => setCollectionFilter("all")}
+            />
+            {collections.map((c) => (
+              <FilterButton
+                key={c}
+                label={c}
+                active={collectionFilter === c}
+                onClick={() => setCollectionFilter(c)}
+              />
+            ))}
+          </div>
+
+          <div className="flex items-center gap-1">
+            <span className="text-[10px] text-zinc-600 mr-1">Duration:</span>
+            <FilterButton
+              label="All"
+              active={durationFilter === "all"}
+              onClick={() => setDurationFilter("all")}
+            />
+            <FilterButton
+              label="<1s"
+              active={durationFilter === "fast"}
+              onClick={() => setDurationFilter("fast")}
+            />
+            <FilterButton
+              label="1-3s"
+              active={durationFilter === "medium"}
+              onClick={() => setDurationFilter("medium")}
+            />
+            <FilterButton
+              label=">3s"
+              active={durationFilter === "slow"}
+              onClick={() => setDurationFilter("slow")}
+            />
+          </div>
+
+          <div className="flex items-center gap-1">
+            <span className="text-[10px] text-zinc-600 mr-1">Node:</span>
+            <FilterButton
+              label="All"
+              active={nodeFilter === "all"}
+              onClick={() => setNodeFilter("all")}
+            />
+            {nodes.map((n) => (
+              <FilterButton
+                key={n}
+                label={n}
+                active={nodeFilter === n}
+                onClick={() => setNodeFilter(n)}
+              />
+            ))}
+          </div>
         </div>
       </div>
 
