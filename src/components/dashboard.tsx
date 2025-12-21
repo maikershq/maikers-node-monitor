@@ -242,16 +242,16 @@ export function Dashboard() {
 
             {/* Middle Column: Group 1 (Stack + Node Pool) */}
             <div className="lg:col-span-3 h-full flex flex-col gap-3 min-h-[500px] lg:min-h-0">
-              <div className="flex-[4] min-h-0">
+              <div className="flex-[5] min-h-0">
                 <ClusterStatus
                   nodes={nodes}
-                  className="h-full min-h-[200px] lg:min-h-0"
+                  className="h-full min-h-[250px] lg:min-h-0"
                 />
               </div>
-              <div className="flex-[6] min-h-0">
+              <div className="flex-[5] min-h-0">
                 <NodePool
                   nodes={nodes}
-                  className="h-full min-h-[300px] lg:min-h-0"
+                  className="h-full min-h-[250px] lg:min-h-0"
                 />
               </div>
             </div>

@@ -136,7 +136,7 @@ export function ClusterStatus({ nodes, className }: ClusterStatusProps) {
         </CardTitle>
       </CardHeader>
       <CardContent className="px-5 pt-2 pb-3 flex-1 flex flex-col min-h-0 justify-between overflow-hidden">
-        <div className="space-y-1.5 flex-1 flex flex-col justify-center overflow-y-auto min-h-0 py-1">
+        <div className="space-y-1 flex-1 flex flex-col overflow-y-auto min-h-0 py-2">
           {layers.map((layer) => {
             const Icon = layer.icon;
             return (
