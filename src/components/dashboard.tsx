@@ -125,8 +125,11 @@ export function Dashboard() {
             }`}
           />
           <div>
-            <h1 className="text-lg md:text-xl font-heading font-bold">
+            <h1 className="text-lg md:text-xl font-heading font-bold flex items-center gap-2">
               maikers nodes
+              <span className="text-[9px] font-mono font-normal px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                BETA
+              </span>
             </h1>
             <p className="text-[10px] text-zinc-500">
               Live network discovery
