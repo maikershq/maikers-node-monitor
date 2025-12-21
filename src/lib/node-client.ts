@@ -42,7 +42,7 @@ export class NodeDiscovery {
   async addEndpoint(endpoint: string) {
     // Normalize endpoint (remove trailing slash)
     const normalized = endpoint.replace(/\/$/, "");
-    
+
     if (!this.discoveredEndpoints.has(normalized)) {
       this.discoveredEndpoints.add(normalized);
       this.saveEndpoints();
@@ -115,26 +115,32 @@ export class NodeDiscovery {
       endpoints.map((endpoint) => this.fetchNodeMetrics(endpoint)),
     );
 
-    const nodes: NodeMetrics[] = [];
+    const nodeMap = new Map<string, NodeMetrics>();
 
     results.forEach((result, index) => {
       const endpoint = endpoints[index];
 
       if (result.status === "fulfilled" && result.value) {
-        nodes.push(result.value);
+        const node = result.value;
+        // Deduplicate by nodeId - keep the most recent
+        if (
+          !nodeMap.has(node.nodeId) ||
+          node.lastUpdate > (nodeMap.get(node.nodeId)?.lastUpdate ?? 0)
+        ) {
+          nodeMap.set(node.nodeId, node);
+        }
         this.connections.set(endpoint, {
           endpoint,
-          nodeId: result.value.nodeId,
+          nodeId: node.nodeId,
           connected: true,
           lastSeen: Date.now(),
         });
       } else {
-        // Mark as disconnected but keep in list
         const existing = this.connections.get(endpoint);
         if (existing) {
           existing.connected = false;
         } else {
-           this.connections.set(endpoint, {
+          this.connections.set(endpoint, {
             endpoint,
             nodeId: "unknown",
             connected: false,
@@ -144,7 +150,7 @@ export class NodeDiscovery {
       }
     });
 
-    return nodes;
+    return Array.from(nodeMap.values());
   }
 
   private async fetchNodeMetrics(
