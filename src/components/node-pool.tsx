@@ -47,16 +47,22 @@ function getStateColor(state: NodeState): string {
 
 export function NodePool({ nodes, className }: NodePoolProps) {
   const nodeData = useMemo(() => {
-    return nodes.map((node) => ({
-      id: node.nodeId,
-      state: getNodeState(node),
-      workers: node.workers,
-      secure: node.secure,
-      cellCount: node.cells.length,
-      ownedCells: node.ownedCells || node.cells.map((c) => c.id),
-      claimedEvents: node.claimedEvents || 0,
-      throughput: node.throughput,
-    }));
+    return nodes
+      .map((node) => ({
+        id: node.nodeId,
+        state: getNodeState(node),
+        workers: node.workers,
+        secure: node.secure,
+        cellCount: node.cells.length,
+        ownedCells: node.ownedCells || node.cells.map((c) => c.id),
+        claimedEvents: node.claimedEvents || 0,
+        throughput: node.throughput,
+      }))
+      .sort((a, b) => {
+        if (a.state === "offline" && b.state !== "offline") return 1;
+        if (a.state !== "offline" && b.state === "offline") return -1;
+        return 0;
+      });
   }, [nodes]);
 
   const activeCount = nodeData.filter((n) => n.state === "active").length;
