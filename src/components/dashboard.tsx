@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
+import { Card, CardContent } from "./ui/card";
 import { MetricCard } from "./metric-card";
 import { VirtualizedNodeGrid } from "./virtualized-node-grid";
 import { LatencyChart } from "./latency-chart";
@@ -250,48 +250,53 @@ export function Dashboard() {
               </div>
             </div>
 
-            {/* Right Column: Group 2 (Charts) */}
-            <div className="lg:col-span-3 h-full flex flex-col gap-3">
-              <Card className="monitor-card flex-1 min-h-0 flex flex-col">
-                <CardHeader className="pb-1 pt-3 px-3 flex-none">
-                  <CardTitle className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-zinc-400">
-                    <Zap className="w-3 h-3 text-[var(--sys-accent)]" />
-                    Throughput
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="pt-0 pb-2 px-3 flex-1 min-h-0">
-                  <div className="h-full w-full">
-                    <ThroughputChart data={timeSeries} />
+            {/* Right Column: Group 2 (Charts) - Unified Card */}
+            <div className="lg:col-span-3 h-full flex flex-col">
+              <Card className="monitor-card h-full flex flex-col p-0 overflow-hidden bg-[var(--card-background)]">
+                {/* Throughput Section */}
+                <div className="flex-[1] flex flex-col min-h-0 border-b border-zinc-800/50">
+                  <div className="px-3 pt-3 flex-none flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-wider text-zinc-400">
+                      <Zap className="w-3 h-3 text-[var(--sys-accent)]" />
+                      Throughput
+                    </div>
                   </div>
-                </CardContent>
-              </Card>
+                  <div className="flex-1 min-h-0 px-1 pb-1">
+                    <div className="h-full w-full">
+                      <ThroughputChart data={timeSeries} />
+                    </div>
+                  </div>
+                </div>
 
-              <Card className="monitor-card flex-1 min-h-0 flex flex-col">
-                <CardHeader className="pb-1 pt-3 px-3 flex-none">
-                  <CardTitle className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-zinc-400">
-                    <Clock className="w-3 h-3 text-[var(--sys-success)]" />
-                    Latency Timeline
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="pt-0 pb-2 px-3 flex-1 min-h-0">
-                  <div className="h-full w-full">
-                    <LatencyChart data={timeSeries} />
+                {/* Latency Timeline Section */}
+                <div className="flex-[1] flex flex-col min-h-0 border-b border-zinc-800/50">
+                  <div className="px-3 pt-3 flex-none flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-wider text-zinc-400">
+                      <Clock className="w-3 h-3 text-[var(--sys-success)]" />
+                      Latency
+                    </div>
                   </div>
-                </CardContent>
-              </Card>
+                  <div className="flex-1 min-h-0 px-1 pb-1">
+                    <div className="h-full w-full">
+                      <LatencyChart data={timeSeries} />
+                    </div>
+                  </div>
+                </div>
 
-              <Card className="monitor-card flex-1 min-h-0 flex flex-col">
-                <CardHeader className="pb-1 pt-3 px-3 flex-none">
-                  <CardTitle className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-zinc-400">
-                    <Activity className="w-3 h-3 text-[var(--sys-warn)]" />
-                    Latency Distribution
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="pt-0 pb-2 px-3 flex-1 min-h-0">
-                  <div className="h-full w-full">
-                    <LatencyHistogram nodes={nodes} />
+                {/* Latency Distribution Section */}
+                <div className="flex-[1] flex flex-col min-h-0">
+                  <div className="px-3 pt-3 flex-none flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-wider text-zinc-400">
+                      <Activity className="w-3 h-3 text-[var(--sys-warn)]" />
+                      Distribution
+                    </div>
                   </div>
-                </CardContent>
+                  <div className="flex-1 min-h-0 px-3 pb-3">
+                    <div className="h-full w-full">
+                      <LatencyHistogram nodes={nodes} />
+                    </div>
+                  </div>
+                </div>
               </Card>
             </div>
           </div>
