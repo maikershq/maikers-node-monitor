@@ -3,7 +3,7 @@
 import { memo, useState } from "react";
 import { twMerge } from "tailwind-merge";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
-import { formatLatency, formatNumber } from "@/lib/utils";
+import { formatLatency, formatNumber, formatUptime } from "@/lib/utils";
 import type { NodeMetrics, NodeStatus, CellMetrics } from "@/lib/types";
 import {
   Shield,
@@ -101,7 +101,6 @@ function NodeCardComponent({ node, className }: NodeCardProps) {
   const [isCopied, setIsCopied] = useState(false);
   const avgSignal =
     node.cells.reduce((s, c) => s + c.signal, 0) / node.cells.length;
-  const uptimeHours = Math.floor(node.uptime / 3600);
   const statusInfo = getStatusIndicator(node.status);
   const StatusIcon = statusInfo.icon;
 
@@ -197,12 +196,12 @@ function NodeCardComponent({ node, className }: NodeCardProps) {
               <ExternalLink className="w-2.5 h-2.5 flex-shrink-0" />
             </a>
           ) : (
-          <p
-            className="text-[10px] text-zinc-600 font-mono truncate flex-1 cursor-default"
-            title={node.peerId}
-          >
-            {node.peerId}
-          </p>
+            <p
+              className="text-[10px] text-zinc-600 font-mono truncate flex-1 cursor-default"
+              title={node.peerId}
+            >
+              {node.peerId}
+            </p>
           )}
           {node.packetLoss > 0 && node.status !== "offline" && (
             <span className="text-[9px] text-red-400 ml-2 whitespace-nowrap">
@@ -275,7 +274,7 @@ function NodeCardComponent({ node, className }: NodeCardProps) {
         <div className="flex items-center justify-between text-[10px] text-zinc-500 border-t border-zinc-800/50 pt-3">
           <div className="flex items-center gap-1">
             <Clock className="w-3 h-3" />
-            <span className="tabular-nums">{uptimeHours}h</span>
+            <span className="tabular-nums">{formatUptime(node.uptime)}</span>
           </div>
           <div className="flex items-center gap-1">
             <Activity className="w-3 h-3" />
