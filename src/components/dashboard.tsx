@@ -233,67 +233,67 @@ export function Dashboard() {
             />
           </div>
 
-          {/* Main Visualization Row: Cell Fabric + Stack + Node Pool */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 mb-6 animate-in lg:h-[380px]">
-            {/* Global Cell Fabric - Main visualization */}
-            <div className="lg:col-span-5 h-full">
+          {/* Main Visualization Row: Shards (Left) | Group 1 (Middle) | Group 2 (Right) */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 mb-6 animate-in lg:h-[680px]">
+            {/* Left Column: Global Cell Fabric (Shards) */}
+            <div className="lg:col-span-6 h-full min-h-[400px]">
               <GlobalCellFabric nodes={nodes} className="h-full" />
             </div>
 
-            {/* Architecture Stack */}
-            <div className="lg:col-span-3 h-full">
-              <ClusterStatus nodes={nodes} className="h-full" />
+            {/* Middle Column: Group 1 (Stack + Node Pool) */}
+            <div className="lg:col-span-3 h-full flex flex-col gap-3">
+              <div className="flex-[4] min-h-0">
+                <ClusterStatus nodes={nodes} className="h-full" />
+              </div>
+              <div className="flex-[6] min-h-0">
+                <NodePool nodes={nodes} className="h-full" />
+              </div>
             </div>
 
-            {/* Node Pool */}
-            <div className="lg:col-span-4 h-full">
-              <NodePool nodes={nodes} className="h-full" />
+            {/* Right Column: Group 2 (Charts) */}
+            <div className="lg:col-span-3 h-full flex flex-col gap-3">
+              <Card className="monitor-card flex-1 min-h-0 flex flex-col">
+                <CardHeader className="pb-1 pt-3 px-4 flex-none">
+                  <CardTitle className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-zinc-400">
+                    <Zap className="w-3 h-3 text-[var(--sys-accent)]" />
+                    Throughput
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-0 pb-3 px-4 flex-1 min-h-0">
+                  <div className="h-full">
+                    <ThroughputChart data={timeSeries} />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="monitor-card flex-1 min-h-0 flex flex-col">
+                <CardHeader className="pb-1 pt-3 px-4 flex-none">
+                  <CardTitle className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-zinc-400">
+                    <Clock className="w-3 h-3 text-[var(--sys-success)]" />
+                    Latency Timeline
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-0 pb-3 px-4 flex-1 min-h-0">
+                  <div className="h-full">
+                    <LatencyChart data={timeSeries} />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="monitor-card flex-1 min-h-0 flex flex-col">
+                <CardHeader className="pb-1 pt-3 px-4 flex-none">
+                  <CardTitle className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-zinc-400">
+                    <Activity className="w-3 h-3 text-[var(--sys-warn)]" />
+                    Latency Distribution
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-0 pb-3 px-4 flex-1 min-h-0">
+                  <div className="h-full">
+                    <LatencyHistogram nodes={nodes} />
+                  </div>
+                </CardContent>
+              </Card>
             </div>
-          </div>
-
-          {/* Charts Row */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 mb-6 animate-in">
-            <Card className="monitor-card">
-              <CardHeader className="pb-2 pt-3">
-                <CardTitle className="flex items-center gap-2 text-sm font-medium">
-                  <Zap className="w-3.5 h-3.5 text-[var(--sys-accent)]" />
-                  Throughput
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pt-0 pb-3">
-                <div className="h-32">
-                  <ThroughputChart data={timeSeries} />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="monitor-card">
-              <CardHeader className="pb-2 pt-3">
-                <CardTitle className="flex items-center gap-2 text-sm font-medium">
-                  <Clock className="w-3.5 h-3.5 text-[var(--sys-success)]" />
-                  Latency Timeline
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pt-0 pb-3">
-                <div className="h-32">
-                  <LatencyChart data={timeSeries} />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="monitor-card">
-              <CardHeader className="pb-2 pt-3">
-                <CardTitle className="flex items-center gap-2 text-sm font-medium">
-                  <Activity className="w-3.5 h-3.5 text-[var(--sys-warn)]" />
-                  Latency Distribution
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pt-0 pb-3">
-                <div className="h-32">
-                  <LatencyHistogram nodes={nodes} />
-                </div>
-              </CardContent>
-            </Card>
           </div>
 
           <div className="animate-in mb-6">
