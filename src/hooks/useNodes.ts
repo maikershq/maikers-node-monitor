@@ -72,11 +72,10 @@ export function useNodes({
   );
 
   useEffect(() => {
-    // Initial state
-    setNodes([]);
-    timeSeriesRef.current = [];
-    setIsLoading(true);
-    setTimeSeries([]);
+    // Only show loading if we don't have data yet
+    if (timeSeriesRef.current.length === 0) {
+      setIsLoading(true);
+    }
     setError(null);
 
     // Start polling
