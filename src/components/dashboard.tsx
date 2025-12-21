@@ -252,7 +252,7 @@ export function Dashboard() {
           </div>
 
           {/* Charts Row */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-3 mb-6 animate-in">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 mb-6 animate-in">
             <Card className="monitor-card">
               <CardHeader className="pb-2 pt-3">
                 <CardTitle className="flex items-center gap-2 text-sm font-medium">
@@ -294,12 +294,14 @@ export function Dashboard() {
                 </div>
               </CardContent>
             </Card>
-
-            <RecentAgents />
           </div>
 
-          <div className="animate-in">
+          <div className="animate-in mb-6">
             <VirtualizedNodeGrid nodes={nodes} />
+          </div>
+
+          <div className="animate-in mb-6">
+            <RecentAgents />
           </div>
         </>
       )}
