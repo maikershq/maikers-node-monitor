@@ -1,4 +1,4 @@
-import type { NodeMetrics, NodeStatus } from "./types";
+import type { NodeMetrics } from "./types";
 
 const SCAN_PORT_START = 8080;
 const SCAN_PORT_END = 8099;
@@ -14,8 +14,8 @@ export interface NodeConnection {
 export class NodeDiscovery {
   private discoveredEndpoints: Set<string> = new Set();
   private connections: Map<string, NodeConnection> = new Map();
-  // Stable node registry - nodes are never removed, only updated
-  private nodeRegistry: Map<string, NodeMetrics> = new Map();
+  // Registry keyed by endpoint (not nodeId) to prevent duplicates
+  private nodesByEndpoint: Map<string, NodeMetrics> = new Map();
   private pollingInterval: NodeJS.Timeout | null = null;
   private scanInterval: NodeJS.Timeout | null = null;
   private onUpdate: ((nodes: NodeMetrics[]) => void) | null = null;
@@ -49,24 +49,11 @@ export class NodeDiscovery {
   removeEndpoint(endpoint: string) {
     this.discoveredEndpoints.delete(endpoint);
     this.connections.delete(endpoint);
-    // Find and remove the node associated with this endpoint
-    for (const [nodeId, node] of this.nodeRegistry) {
-      if (this.getEndpointForNode(nodeId) === endpoint) {
-        this.nodeRegistry.delete(nodeId);
-        break;
-      }
-    }
+    this.nodesByEndpoint.delete(endpoint);
     this.saveEndpoints();
     if (this.onUpdate) {
       this.refreshNodes();
     }
-  }
-
-  private getEndpointForNode(nodeId: string): string | undefined {
-    for (const [endpoint, conn] of this.connections) {
-      if (conn.nodeId === nodeId) return endpoint;
-    }
-    return undefined;
   }
 
   private saveEndpoints() {
@@ -130,8 +117,8 @@ export class NodeDiscovery {
         const node = result.value;
         node.status = "healthy";
 
-        // Update registry with fresh data
-        this.nodeRegistry.set(node.nodeId, node);
+        // Store by endpoint to prevent duplicates
+        this.nodesByEndpoint.set(endpoint, node);
 
         this.connections.set(endpoint, {
           endpoint,
@@ -140,14 +127,12 @@ export class NodeDiscovery {
           lastSeen: Date.now(),
         });
       } else {
-        // Fetch failed - mark existing node as offline or create placeholder
-        const existingConn = this.connections.get(endpoint);
-        const nodeId = existingConn?.nodeId;
+        // Fetch failed - update existing or create placeholder
+        const existing = this.nodesByEndpoint.get(endpoint);
 
-        if (nodeId && this.nodeRegistry.has(nodeId)) {
-          // Update existing node to offline
-          const existing = this.nodeRegistry.get(nodeId)!;
-          this.nodeRegistry.set(nodeId, {
+        if (existing) {
+          // Mark existing node as offline
+          this.nodesByEndpoint.set(endpoint, {
             ...existing,
             status: "offline",
             lastUpdate: Date.now(),
@@ -155,23 +140,26 @@ export class NodeDiscovery {
         } else {
           // Create placeholder for never-seen endpoint
           const placeholder = this.createOfflinePlaceholder(endpoint);
-          this.nodeRegistry.set(placeholder.nodeId, placeholder);
+          this.nodesByEndpoint.set(endpoint, placeholder);
+        }
+
+        const conn = this.connections.get(endpoint);
+        if (conn) {
+          conn.connected = false;
+        } else {
+          const node = this.nodesByEndpoint.get(endpoint)!;
           this.connections.set(endpoint, {
             endpoint,
-            nodeId: placeholder.nodeId,
+            nodeId: node.nodeId,
             connected: false,
             lastSeen: 0,
           });
         }
-
-        if (existingConn) {
-          existingConn.connected = false;
-        }
       }
     });
 
-    // Return all nodes from registry (never removes nodes)
-    return Array.from(this.nodeRegistry.values());
+    // Return all nodes (one per endpoint, no duplicates)
+    return Array.from(this.nodesByEndpoint.values());
   }
 
   private async fetchNodeMetrics(
@@ -200,14 +188,11 @@ export class NodeDiscovery {
   }
 
   private createOfflinePlaceholder(endpoint: string): NodeMetrics {
-    const urlParts = endpoint.replace(/https?:\/\//, "").split(/[:.]/);
-    const nodeId =
-      urlParts[0] === "localhost"
-        ? `localhost:${urlParts[1] || "8080"}`
-        : urlParts[0];
+    // Use endpoint as nodeId to ensure uniqueness
+    const urlParts = endpoint.replace(/https?:\/\//, "");
 
     return {
-      nodeId,
+      nodeId: urlParts,
       peerId: "unknown",
       secure: false,
       teePlatform: null,
@@ -231,7 +216,7 @@ export class NodeDiscovery {
     const raw = data as Record<string, unknown>;
 
     return {
-      nodeId: (raw.nodeId as string) || `node-${endpoint.split(":").pop()}`,
+      nodeId: (raw.nodeId as string) || endpoint.replace(/https?:\/\//, ""),
       peerId: (raw.peerId as string) || "unknown",
       secure: (raw.secure as boolean) ?? false,
       teePlatform: (raw.teePlatform as NodeMetrics["teePlatform"]) ?? null,
@@ -270,7 +255,7 @@ export class NodeDiscovery {
     // Initial scan
     this.scanForNodes();
 
-    // Re-scan for new nodes every 30 seconds (less aggressive)
+    // Re-scan for new nodes every 30 seconds
     this.scanInterval = setInterval(() => this.scanForNodes(), 30000);
 
     // Poll known nodes at requested interval
