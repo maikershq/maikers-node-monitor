@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import {
   Table,
   TableBody,
@@ -9,7 +9,15 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Bot, ArrowUpDown, ArrowUp, ArrowDown, Search } from "lucide-react";
+import {
+  Bot,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+  Search,
+  ChevronDown,
+  Check,
+} from "lucide-react";
 
 interface Agent {
   pubkey: string;
@@ -73,15 +81,96 @@ const MOCK_AGENTS: Agent[] = isDev
 
 type SortField = "name" | "collection" | "duration" | "nodeId" | "timestamp";
 type SortDirection = "asc" | "desc";
-type DurationFilter = "all" | "fast" | "medium" | "slow";
+type DurationOption = "fast" | "medium" | "slow";
+
+interface MultiSelectProps {
+  label: string;
+  options: string[];
+  selected: Set<string>;
+  onChange: (selected: Set<string>) => void;
+}
+
+function MultiSelect({ label, options, selected, onChange }: MultiSelectProps) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const toggle = (value: string) => {
+    const next = new Set(selected);
+    if (next.has(value)) {
+      next.delete(value);
+    } else {
+      next.add(value);
+    }
+    onChange(next);
+  };
+
+  const displayText =
+    selected.size === 0
+      ? `All ${label}`
+      : selected.size === 1
+        ? Array.from(selected)[0]
+        : `${selected.size} selected`;
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        onClick={() => setOpen(!open)}
+        className="h-7 px-2 pr-6 text-[10px] bg-zinc-900 border border-zinc-800 rounded text-zinc-300 focus:outline-none focus:border-zinc-700 cursor-pointer flex items-center gap-1 min-w-[100px]"
+      >
+        <span className="truncate">{displayText}</span>
+        <ChevronDown className="w-3 h-3 absolute right-2 text-zinc-500" />
+      </button>
+      {open && (
+        <div className="absolute z-50 mt-1 w-full min-w-[140px] bg-zinc-900 border border-zinc-800 rounded shadow-lg py-1 max-h-48 overflow-y-auto">
+          {options.map((opt) => (
+            <button
+              key={opt}
+              onClick={() => toggle(opt)}
+              className="w-full px-2 py-1.5 text-[10px] text-left hover:bg-zinc-800 flex items-center gap-2 text-zinc-300"
+            >
+              <span
+                className={`w-3 h-3 rounded border flex items-center justify-center ${selected.has(opt) ? "bg-cyan-500 border-cyan-500" : "border-zinc-600"}`}
+              >
+                {selected.has(opt) && <Check className="w-2 h-2 text-white" />}
+              </span>
+              {opt}
+            </button>
+          ))}
+          {selected.size > 0 && (
+            <button
+              onClick={() => onChange(new Set())}
+              className="w-full px-2 py-1.5 text-[10px] text-left hover:bg-zinc-800 text-zinc-500 border-t border-zinc-800 mt-1"
+            >
+              Clear all
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export function RecentAgents() {
   const [sortField, setSortField] = useState<SortField>("timestamp");
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
   const [agentSearch, setAgentSearch] = useState("");
-  const [collectionFilter, setCollectionFilter] = useState<string>("all");
-  const [durationFilter, setDurationFilter] = useState<DurationFilter>("all");
-  const [nodeFilter, setNodeFilter] = useState<string>("all");
+  const [collectionFilter, setCollectionFilter] = useState<Set<string>>(
+    new Set(),
+  );
+  const [durationFilter, setDurationFilter] = useState<Set<DurationOption>>(
+    new Set(),
+  );
+  const [nodeFilter, setNodeFilter] = useState<Set<string>>(new Set());
 
   const collections = useMemo(() => {
     const unique = [...new Set(MOCK_AGENTS.map((a) => a.collection))];
@@ -93,6 +182,12 @@ export function RecentAgents() {
     return unique.sort();
   }, []);
 
+  const durationOptions: { value: DurationOption; label: string }[] = [
+    { value: "fast", label: "<1s" },
+    { value: "medium", label: "1-3s" },
+    { value: "slow", label: ">3s" },
+  ];
+
   const filteredAndSortedAgents = useMemo(() => {
     return [...MOCK_AGENTS]
       .filter((agent) => {
@@ -102,20 +197,22 @@ export function RecentAgents() {
           const matchesName = agent.name?.toLowerCase().includes(search);
           if (!matchesPubkey && !matchesName) return false;
         }
-        if (collectionFilter !== "all" && agent.collection !== collectionFilter)
+        if (
+          collectionFilter.size > 0 &&
+          !collectionFilter.has(agent.collection)
+        )
           return false;
-        if (durationFilter !== "all") {
-          if (durationFilter === "fast" && agent.durationMs >= 1000)
-            return false;
-          if (
-            durationFilter === "medium" &&
-            (agent.durationMs < 1000 || agent.durationMs >= 3000)
-          )
-            return false;
-          if (durationFilter === "slow" && agent.durationMs < 3000)
-            return false;
+        if (durationFilter.size > 0) {
+          const isFast = agent.durationMs < 1000;
+          const isMedium = agent.durationMs >= 1000 && agent.durationMs < 3000;
+          const isSlow = agent.durationMs >= 3000;
+          const matches =
+            (durationFilter.has("fast") && isFast) ||
+            (durationFilter.has("medium") && isMedium) ||
+            (durationFilter.has("slow") && isSlow);
+          if (!matches) return false;
         }
-        if (nodeFilter !== "all" && agent.nodeId !== nodeFilter) return false;
+        if (nodeFilter.size > 0 && !nodeFilter.has(agent.nodeId)) return false;
         return true;
       })
       .sort((a, b) => {
@@ -179,27 +276,6 @@ export function RecentAgents() {
     );
   };
 
-  const FilterButton = ({
-    label,
-    active,
-    onClick,
-  }: {
-    label: string;
-    active: boolean;
-    onClick: () => void;
-  }) => (
-    <button
-      onClick={onClick}
-      className={`px-2 py-1 rounded text-[10px] font-medium transition-colors ${
-        active
-          ? "bg-cyan-500/20 text-cyan-400"
-          : "bg-zinc-800/50 text-zinc-500 hover:bg-zinc-800 hover:text-zinc-300"
-      }`}
-    >
-      {label}
-    </button>
-  );
-
   const formatDuration = (ms: number) => {
     if (ms < 1000) return `${ms}ms`;
     return `${(ms / 1000).toFixed(2)}s`;
@@ -232,63 +308,39 @@ export function RecentAgents() {
             />
           </div>
 
-          <div className="flex items-center gap-1">
-            <span className="text-[10px] text-zinc-600 mr-1">Collection:</span>
-            <FilterButton
-              label="All"
-              active={collectionFilter === "all"}
-              onClick={() => setCollectionFilter("all")}
-            />
-            {collections.map((c) => (
-              <FilterButton
-                key={c}
-                label={c}
-                active={collectionFilter === c}
-                onClick={() => setCollectionFilter(c)}
-              />
-            ))}
-          </div>
+          <MultiSelect
+            label="Collections"
+            options={collections}
+            selected={collectionFilter}
+            onChange={setCollectionFilter}
+          />
 
-          <div className="flex items-center gap-1">
-            <span className="text-[10px] text-zinc-600 mr-1">Duration:</span>
-            <FilterButton
-              label="All"
-              active={durationFilter === "all"}
-              onClick={() => setDurationFilter("all")}
-            />
-            <FilterButton
-              label="<1s"
-              active={durationFilter === "fast"}
-              onClick={() => setDurationFilter("fast")}
-            />
-            <FilterButton
-              label="1-3s"
-              active={durationFilter === "medium"}
-              onClick={() => setDurationFilter("medium")}
-            />
-            <FilterButton
-              label=">3s"
-              active={durationFilter === "slow"}
-              onClick={() => setDurationFilter("slow")}
-            />
-          </div>
+          <MultiSelect
+            label="Durations"
+            options={durationOptions.map((d) => d.label)}
+            selected={
+              new Set(
+                Array.from(durationFilter).map(
+                  (v) => durationOptions.find((d) => d.value === v)?.label || v,
+                ),
+              )
+            }
+            onChange={(labels) => {
+              const values = new Set<DurationOption>();
+              labels.forEach((label) => {
+                const opt = durationOptions.find((d) => d.label === label);
+                if (opt) values.add(opt.value);
+              });
+              setDurationFilter(values);
+            }}
+          />
 
-          <div className="flex items-center gap-1">
-            <span className="text-[10px] text-zinc-600 mr-1">Node:</span>
-            <FilterButton
-              label="All"
-              active={nodeFilter === "all"}
-              onClick={() => setNodeFilter("all")}
-            />
-            {nodes.map((n) => (
-              <FilterButton
-                key={n}
-                label={n}
-                active={nodeFilter === n}
-                onClick={() => setNodeFilter(n)}
-              />
-            ))}
-          </div>
+          <MultiSelect
+            label="Nodes"
+            options={nodes}
+            selected={nodeFilter}
+            onChange={setNodeFilter}
+          />
         </div>
       </div>
 
