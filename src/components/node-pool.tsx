@@ -12,19 +12,22 @@ interface NodePoolProps {
   className?: string;
 }
 
-type NodeState = "active" | "error" | "not_synced" | "offline";
+type NodeState = "active" | "busy" | "error" | "not_synced" | "offline";
 
 function getNodeState(node: NodeMetrics): NodeState {
   if (node.status === "offline") return "offline";
   if (node.status === "degraded") return "error";
-  if (node.workers.active > 0) return "active";
-  return "not_synced";
+  if (node.workers.active === 0) return "not_synced";
+  if (node.workers.active > node.workers.total * 0.8) return "busy";
+  return "active";
 }
 
 function getStateColor(state: NodeState): string {
   switch (state) {
     case "active":
       return "bg-[var(--sys-success)]";
+    case "busy":
+      return "bg-[var(--sys-accent)]";
     case "error":
       return "bg-[var(--sys-danger)]";
     case "not_synced":
@@ -51,6 +54,7 @@ export function NodePool({ nodes, className }: NodePoolProps) {
   }, [nodes]);
 
   const activeCount = nodeData.filter((n) => n.state === "active").length;
+  const busyCount = nodeData.filter((n) => n.state === "busy").length;
   const errorCount = nodeData.filter((n) => n.state === "error").length;
   const notSyncedCount = nodeData.filter(
     (n) => n.state === "not_synced",
@@ -88,8 +92,8 @@ export function NodePool({ nodes, className }: NodePoolProps) {
                 className={twMerge(
                   "w-2 h-2 rounded-full flex-shrink-0",
                   getStateColor(node.state),
-                  node.state === "active" &&
-                    "shadow-[0_0_4px_var(--sys-success)] animate-pulse",
+                  (node.state === "active" || node.state === "busy") &&
+                    "shadow-[0_0_4px_currentColor] animate-pulse",
                 )}
               />
 
@@ -131,6 +135,11 @@ export function NodePool({ nodes, className }: NodePoolProps) {
               <span className="w-2 h-2 rounded-full bg-[var(--sys-success)]" />
               <span className="text-zinc-400">Active</span>
               <span className="text-white font-mono">{activeCount}</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-[var(--sys-accent)]" />
+              <span className="text-zinc-400">Busy</span>
+              <span className="text-white font-mono">{busyCount}</span>
             </div>
             <div className="flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-[var(--sys-danger)]" />

@@ -10,6 +10,7 @@ export type CellRole = "primary" | "replica";
 export interface NodeMetrics {
   nodeId: string;
   peerId: string;
+  nodePubkey?: string; // Add nodePubkey field
   secure: boolean;
   teePlatform: "IntelTDX" | "AmdSEV" | null;
   teeAttested: boolean;

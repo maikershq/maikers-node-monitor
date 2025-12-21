@@ -90,9 +90,27 @@ function NodeCardComponent({ node, className }: NodeCardProps) {
   const statusInfo = getStatusIndicator(node.status);
   const StatusIcon = statusInfo.icon;
 
-  const handleCopy = async () => {
+  const handleCopy = async (e: React.MouseEvent | React.TouchEvent) => {
+    e.stopPropagation();
+    const textToCopy = node.nodePubkey || node.peerId; // Prefer nodePubkey, fallback to peerId
     try {
-      await navigator.clipboard.writeText(node.nodeId);
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(textToCopy);
+      } else {
+        const textArea = document.createElement("textarea");
+        textArea.value = textToCopy;
+        textArea.style.position = "fixed";
+        textArea.style.left = "-9999px";
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        try {
+          document.execCommand("copy");
+        } catch (err) {
+          console.error("Fallback copy failed", err);
+        }
+        document.body.removeChild(textArea);
+      }
       setIsCopied(true);
       setTimeout(() => setIsCopied(false), 2000);
     } catch (err) {
@@ -118,8 +136,12 @@ function NodeCardComponent({ node, className }: NodeCardProps) {
             {node.nodeId}
             <button
               onClick={handleCopy}
-              className="ml-1 p-1 text-zinc-500 hover:text-[var(--sys-accent)] transition-colors rounded hover:bg-zinc-800 focus:outline-none focus:ring-1 focus:ring-zinc-700"
-              aria-label="Copy Node ID"
+              onTouchEnd={(e) => {
+                e.preventDefault();
+                handleCopy(e);
+              }}
+              className="ml-1 p-1.5 text-zinc-500 hover:text-[var(--sys-accent)] transition-colors rounded hover:bg-zinc-800 focus:outline-none focus:ring-1 focus:ring-zinc-700 active:bg-zinc-700"
+              aria-label="Copy Public Key"
             >
               {isCopied ? (
                 <Check className="w-3 h-3 text-[var(--sys-success)]" />

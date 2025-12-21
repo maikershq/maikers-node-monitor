@@ -290,6 +290,7 @@ export class NodeDiscovery {
     return {
       nodeId: (raw.nodeId as string) || endpoint.replace(/https?:\/\//, ""),
       peerId: (raw.peerId as string) || "unknown",
+      nodePubkey: (raw.nodePubkey as string) || undefined, // Map nodePubkey
       secure: (raw.secure as boolean) ?? false,
       teePlatform: (raw.teePlatform as NodeMetrics["teePlatform"]) ?? null,
       teeAttested: (raw.teeAttested as boolean) || false,
