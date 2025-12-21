@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useMemo } from "react";
 import {
   Table,
   TableBody,
@@ -8,13 +9,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Bot, Zap, Circle, Activity } from "lucide-react";
-
-// I'll need a Badge component. Let's check if I have it or just use Tailwind.
-// Since I only installed Table and Card is there, I probably don't have Badge.
-// I'll use Tailwind for badges to avoid installing too many things if not needed,
-// or I can install badge.
+import { Bot, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 
 interface Agent {
   id: string;
@@ -22,7 +17,7 @@ interface Agent {
   type: "search" | "transaction" | "monitor" | "creation";
   status: "active" | "idle" | "failed";
   nodeId: string;
-  timestamp: string;
+  timestamp: number;
 }
 
 const MOCK_AGENTS: Agent[] = [
@@ -32,7 +27,7 @@ const MOCK_AGENTS: Agent[] = [
     type: "search",
     status: "active",
     nodeId: "node-001",
-    timestamp: "2s ago",
+    timestamp: 2,
   },
   {
     id: "ag_7a11...9k00",
@@ -40,7 +35,7 @@ const MOCK_AGENTS: Agent[] = [
     type: "creation",
     status: "active",
     nodeId: "node-003",
-    timestamp: "5s ago",
+    timestamp: 5,
   },
   {
     id: "ag_3b44...1p55",
@@ -48,7 +43,7 @@ const MOCK_AGENTS: Agent[] = [
     type: "monitor",
     status: "idle",
     nodeId: "node-002",
-    timestamp: "12s ago",
+    timestamp: 12,
   },
   {
     id: "ag_9c22...4m88",
@@ -56,7 +51,7 @@ const MOCK_AGENTS: Agent[] = [
     type: "transaction",
     status: "active",
     nodeId: "node-001",
-    timestamp: "15s ago",
+    timestamp: 15,
   },
   {
     id: "ag_1d33...2n99",
@@ -64,44 +59,139 @@ const MOCK_AGENTS: Agent[] = [
     type: "monitor",
     status: "active",
     nodeId: "node-004",
-    timestamp: "24s ago",
+    timestamp: 24,
   },
 ];
 
+type SortField = "name" | "type" | "status" | "nodeId" | "timestamp";
+type SortDirection = "asc" | "desc";
+
 export function RecentAgents() {
+  const [sortField, setSortField] = useState<SortField>("timestamp");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
+
+  const sortedAgents = useMemo(() => {
+    return [...MOCK_AGENTS].sort((a, b) => {
+      let valA: string | number;
+      let valB: string | number;
+
+      switch (sortField) {
+        case "name":
+          valA = a.name.toLowerCase();
+          valB = b.name.toLowerCase();
+          break;
+        case "type":
+          valA = a.type;
+          valB = b.type;
+          break;
+        case "status":
+          const statusOrder = { active: 0, idle: 1, failed: 2 };
+          valA = statusOrder[a.status];
+          valB = statusOrder[b.status];
+          break;
+        case "nodeId":
+          valA = a.nodeId;
+          valB = b.nodeId;
+          break;
+        case "timestamp":
+          valA = a.timestamp;
+          valB = b.timestamp;
+          break;
+        default:
+          return 0;
+      }
+
+      if (valA < valB) return sortDirection === "asc" ? -1 : 1;
+      if (valA > valB) return sortDirection === "asc" ? 1 : -1;
+      return 0;
+    });
+  }, [sortField, sortDirection]);
+
+  const toggleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      setSortField(field);
+      setSortDirection("asc");
+    }
+  };
+
+  const SortButton = ({
+    field,
+    label,
+  }: {
+    field: SortField;
+    label: string;
+  }) => (
+    <button
+      onClick={() => toggleSort(field)}
+      className={`flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+        sortField === field
+          ? "bg-cyan-500/20 text-cyan-400"
+          : "bg-zinc-800/50 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200"
+      }`}
+    >
+      {label}
+      {sortField === field ? (
+        sortDirection === "asc" ? (
+          <ArrowUp className="w-3 h-3" />
+        ) : (
+          <ArrowDown className="w-3 h-3" />
+        )
+      ) : (
+        <ArrowUpDown className="w-3 h-3 opacity-50" />
+      )}
+    </button>
+  );
+
+  const formatTimestamp = (seconds: number) => `${seconds}s ago`;
+
   return (
-    <Card className="monitor-card h-full">
-      <CardHeader className="pb-2 pt-3">
-        <CardTitle className="flex items-center gap-2 text-sm font-medium">
-          <Bot className="w-3.5 h-3.5 text-[var(--sys-accent)]" />
+    <div>
+      <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
+        <h2 className="text-sm font-heading font-semibold text-zinc-400 flex items-center gap-2">
+          <Bot className="w-4 h-4" />
           Recent Agents
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="p-0">
+          <span className="text-zinc-600 font-normal">
+            ({sortedAgents.length})
+          </span>
+        </h2>
+
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-xs text-zinc-500 mr-1">Sort by:</span>
+          <SortButton field="name" label="Name" />
+          <SortButton field="type" label="Type" />
+          <SortButton field="status" label="Status" />
+          <SortButton field="nodeId" label="Node" />
+          <SortButton field="timestamp" label="Time" />
+        </div>
+      </div>
+
+      <div className="border border-zinc-800/50 rounded-lg overflow-hidden">
         <Table>
           <TableHeader>
-            <TableRow className="hover:bg-transparent border-zinc-800/50">
-              <TableHead className="h-8 text-[10px] uppercase tracking-wider font-mono text-zinc-500">
+            <TableRow className="hover:bg-transparent border-zinc-800/50 bg-zinc-900/50">
+              <TableHead className="h-10 text-[10px] uppercase tracking-wider font-mono text-zinc-500">
                 Agent
               </TableHead>
-              <TableHead className="h-8 text-[10px] uppercase tracking-wider font-mono text-zinc-500">
+              <TableHead className="h-10 text-[10px] uppercase tracking-wider font-mono text-zinc-500">
                 Type
               </TableHead>
-              <TableHead className="h-8 text-[10px] uppercase tracking-wider font-mono text-zinc-500">
+              <TableHead className="h-10 text-[10px] uppercase tracking-wider font-mono text-zinc-500">
                 Status
               </TableHead>
-              <TableHead className="h-8 text-[10px] uppercase tracking-wider font-mono text-zinc-500 text-right">
+              <TableHead className="h-10 text-[10px] uppercase tracking-wider font-mono text-zinc-500 text-right">
                 Node
               </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {MOCK_AGENTS.map((agent) => (
+            {sortedAgents.map((agent) => (
               <TableRow
                 key={agent.id}
                 className="hover:bg-zinc-800/30 border-zinc-800/50 transition-colors"
               >
-                <TableCell className="py-2 font-medium text-xs">
+                <TableCell className="py-3 font-medium text-xs">
                   <div className="flex flex-col">
                     <span className="text-zinc-200">{agent.name}</span>
                     <span className="text-[10px] text-zinc-500 font-mono">
@@ -109,7 +199,7 @@ export function RecentAgents() {
                     </span>
                   </div>
                 </TableCell>
-                <TableCell className="py-2">
+                <TableCell className="py-3">
                   <span
                     className={`text-[10px] px-1.5 py-0.5 rounded border ${
                       agent.type === "search"
@@ -124,7 +214,7 @@ export function RecentAgents() {
                     {agent.type}
                   </span>
                 </TableCell>
-                <TableCell className="py-2">
+                <TableCell className="py-3">
                   <div className="flex items-center gap-1.5">
                     <div
                       className={`w-1.5 h-1.5 rounded-full ${
@@ -140,13 +230,13 @@ export function RecentAgents() {
                     </span>
                   </div>
                 </TableCell>
-                <TableCell className="py-2 text-right">
+                <TableCell className="py-3 text-right">
                   <div className="flex flex-col items-end">
                     <span className="text-[10px] text-zinc-300 font-mono">
                       {agent.nodeId}
                     </span>
                     <span className="text-[10px] text-zinc-600">
-                      {agent.timestamp}
+                      {formatTimestamp(agent.timestamp)}
                     </span>
                   </div>
                 </TableCell>
@@ -154,7 +244,7 @@ export function RecentAgents() {
             ))}
           </TableBody>
         </Table>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }
