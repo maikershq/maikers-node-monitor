@@ -139,7 +139,14 @@ export class NodeDiscovery {
         }
         // Priority 2: ip + http_port (registry format)
         else if (node.ip && node.http_port) {
-          resolved = `http://${node.ip}:${node.http_port}`;
+          const port = Number(node.http_port);
+          if (port === 443) {
+            resolved = `https://${node.ip}`;
+          } else if (port === 80) {
+            resolved = `http://${node.ip}`;
+          } else {
+            resolved = `http://${node.ip}:${port}`;
+          }
         }
         // Priority 3: host or nodeId fallback
         else if (node.host || node.nodeId) {
