@@ -3,12 +3,22 @@
 import { useRef, useState, useEffect, useCallback, useMemo } from "react";
 import { NodeCard } from "./node-card";
 import type { NodeMetrics } from "@/lib/types";
+import { ArrowUpDown, ArrowUp, ArrowDown, Server } from "lucide-react";
 
 interface VirtualizedNodeGridProps {
   nodes: NodeMetrics[];
   cardHeight?: number;
   gap?: number;
 }
+
+type SortField =
+  | "nodeId"
+  | "status"
+  | "throughput"
+  | "workers"
+  | "latency"
+  | "uptime";
+type SortDirection = "asc" | "desc";
 
 export function VirtualizedNodeGrid({
   nodes,
@@ -18,6 +28,8 @@ export function VirtualizedNodeGrid({
   const containerRef = useRef<HTMLDivElement>(null);
   const [visibleRange, setVisibleRange] = useState({ start: 0, end: 20 });
   const [columns, setColumns] = useState(3);
+  const [sortField, setSortField] = useState<SortField>("nodeId");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
 
   const updateColumns = useCallback(() => {
     if (!containerRef.current) return;
@@ -36,8 +48,50 @@ export function VirtualizedNodeGrid({
     return () => resizeObserver.disconnect();
   }, [updateColumns]);
 
+  const sortedNodes = useMemo(() => {
+    return [...nodes].sort((a, b) => {
+      let valA: any;
+      let valB: any;
+
+      switch (sortField) {
+        case "nodeId":
+          valA = a.nodeId;
+          valB = b.nodeId;
+          break;
+        case "status":
+          // Custom order: healthy > degraded > offline
+          const statusOrder = { healthy: 0, degraded: 1, offline: 2 };
+          valA = statusOrder[a.status];
+          valB = statusOrder[b.status];
+          break;
+        case "throughput":
+          valA = a.throughput;
+          valB = b.throughput;
+          break;
+        case "workers":
+          valA = a.workers.active;
+          valB = b.workers.active;
+          break;
+        case "latency":
+          valA = a.latency.p99;
+          valB = b.latency.p99;
+          break;
+        case "uptime":
+          valA = a.uptime;
+          valB = b.uptime;
+          break;
+        default:
+          return 0;
+      }
+
+      if (valA < valB) return sortDirection === "asc" ? -1 : 1;
+      if (valA > valB) return sortDirection === "asc" ? 1 : -1;
+      return 0;
+    });
+  }, [nodes, sortField, sortDirection]);
+
   const rowHeight = cardHeight + gap;
-  const totalRows = Math.ceil(nodes.length / columns);
+  const totalRows = Math.ceil(sortedNodes.length / columns);
   const totalHeight = totalRows * rowHeight;
 
   const handleScroll = useCallback(() => {
@@ -56,10 +110,10 @@ export function VirtualizedNodeGrid({
 
       setVisibleRange({
         start: startRow * columns,
-        end: Math.min(nodes.length, endRow * columns),
+        end: Math.min(sortedNodes.length, endRow * columns),
       });
     });
-  }, [rowHeight, totalRows, columns, nodes.length]);
+  }, [rowHeight, totalRows, columns, sortedNodes.length]);
 
   useEffect(() => {
     handleScroll();
@@ -72,24 +126,83 @@ export function VirtualizedNodeGrid({
   }, [handleScroll]);
 
   const visibleNodes = useMemo(() => {
-    return nodes.slice(visibleRange.start, visibleRange.end);
-  }, [nodes, visibleRange.start, visibleRange.end]);
+    return sortedNodes.slice(visibleRange.start, visibleRange.end);
+  }, [sortedNodes, visibleRange.start, visibleRange.end]);
 
   const startRow = Math.floor(visibleRange.start / columns);
   const topOffset = startRow * rowHeight;
 
-  return (
-    <div
-      ref={containerRef}
-      style={{ height: totalHeight, position: "relative" }}
+  const toggleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      setSortField(field);
+      setSortDirection("desc"); // Default to desc for metrics usually
+    }
+  };
+
+  const SortButton = ({
+    field,
+    label,
+  }: {
+    field: SortField;
+    label: string;
+  }) => (
+    <button
+      onClick={() => toggleSort(field)}
+      className={`flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+        sortField === field
+          ? "bg-cyan-500/20 text-cyan-400"
+          : "bg-zinc-800/50 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200"
+      }`}
     >
+      {label}
+      {sortField === field ? (
+        sortDirection === "asc" ? (
+          <ArrowUp className="w-3 h-3" />
+        ) : (
+          <ArrowDown className="w-3 h-3" />
+        )
+      ) : (
+        <ArrowUpDown className="w-3 h-3 opacity-50" />
+      )}
+    </button>
+  );
+
+  return (
+    <div>
+      <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
+        <h2 className="text-sm font-heading font-semibold text-zinc-400 flex items-center gap-2">
+          <Server className="w-4 h-4" />
+          Discovered Nodes
+          <span className="text-zinc-600 font-normal">
+            ({sortedNodes.length})
+          </span>
+        </h2>
+
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-xs text-zinc-500 mr-1">Sort by:</span>
+          <SortButton field="nodeId" label="Name" />
+          <SortButton field="status" label="Status" />
+          <SortButton field="throughput" label="Throughput" />
+          <SortButton field="workers" label="Workers" />
+          <SortButton field="latency" label="Latency" />
+          <SortButton field="uptime" label="Uptime" />
+        </div>
+      </div>
+
       <div
-        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 absolute w-full"
-        style={{ top: topOffset }}
+        ref={containerRef}
+        style={{ height: totalHeight, position: "relative" }}
       >
-        {visibleNodes.map((node) => (
-          <NodeCard key={node.nodeId} node={node} />
-        ))}
+        <div
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 absolute w-full"
+          style={{ top: topOffset }}
+        >
+          {visibleNodes.map((node) => (
+            <NodeCard key={node.nodeId} node={node} />
+          ))}
+        </div>
       </div>
     </div>
   );

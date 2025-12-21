@@ -2,24 +2,11 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import type { NodeMetrics, TimeSeriesPoint } from "@/lib/types";
-import {
-  generateMockNodes,
-  generateTimeSeries,
-  batchUpdateNodes,
-  NetworkIssueConfig,
-  DEFAULT_NETWORK_ISSUES,
-} from "@/lib/mock-data";
 import { nodeDiscovery, NodeConnection } from "@/lib/node-client";
 
-export type DataMode = "simulation" | "live";
-
 interface UseNodesOptions {
-  mode: DataMode;
-  simulatedNodeCount?: number;
   pollingIntervalMs?: number;
   timeSeriesPoints?: number;
-  cellsPerNode?: number;
-  networkIssues?: NetworkIssueConfig;
 }
 
 interface UseNodesReturn {
@@ -31,29 +18,18 @@ interface UseNodesReturn {
   addEndpoint: (endpoint: string) => void;
   removeEndpoint: (endpoint: string) => void;
   refresh: () => Promise<void>;
-  setNodeCount: (count: number) => void;
-  setNetworkIssues: (config: NetworkIssueConfig) => void;
-  networkIssues: NetworkIssueConfig;
 }
 
 export function useNodes({
-  mode,
-  simulatedNodeCount = 50,
   pollingIntervalMs = 500,
   timeSeriesPoints = 60,
-  cellsPerNode = 16,
-  networkIssues: initialNetworkIssues = DEFAULT_NETWORK_ISSUES,
-}: UseNodesOptions): UseNodesReturn {
+}: UseNodesOptions = {}): UseNodesReturn {
   const [nodes, setNodes] = useState<NodeMetrics[]>([]);
   const [timeSeries, setTimeSeries] = useState<TimeSeriesPoint[]>([]);
   const [connections, setConnections] = useState<NodeConnection[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [nodeCount, setNodeCount] = useState(simulatedNodeCount);
-  const [networkIssues, setNetworkIssues] =
-    useState<NetworkIssueConfig>(initialNetworkIssues);
 
-  const nodesRef = useRef<NodeMetrics[]>([]);
   const timeSeriesRef = useRef<TimeSeriesPoint[]>([]);
 
   const updateTimeSeries = useCallback(
@@ -96,42 +72,14 @@ export function useNodes({
   );
 
   useEffect(() => {
-    if (mode !== "simulation") return;
-
-    const initialNodes = generateMockNodes(nodeCount, cellsPerNode);
-    nodesRef.current = initialNodes;
-    setNodes(initialNodes);
-    setTimeSeries(generateTimeSeries(timeSeriesPoints));
-    setIsLoading(false);
-    setError(null);
-
-    const interval = setInterval(() => {
-      nodesRef.current = batchUpdateNodes(nodesRef.current, networkIssues);
-      setNodes(nodesRef.current);
-      updateTimeSeries(nodesRef.current);
-    }, pollingIntervalMs);
-
-    return () => clearInterval(interval);
-  }, [
-    mode,
-    nodeCount,
-    pollingIntervalMs,
-    timeSeriesPoints,
-    cellsPerNode,
-    networkIssues,
-    updateTimeSeries,
-  ]);
-
-  useEffect(() => {
-    if (mode !== "live") return;
-
+    // Initial state
     setNodes([]);
-    nodesRef.current = [];
     timeSeriesRef.current = [];
     setIsLoading(true);
     setTimeSeries([]);
     setError(null);
 
+    // Start polling
     nodeDiscovery.startPolling(pollingIntervalMs, (discoveredNodes) => {
       setNodes(discoveredNodes);
       setConnections(nodeDiscovery.getConnections());
@@ -148,7 +96,7 @@ export function useNodes({
     return () => {
       nodeDiscovery.stopPolling();
     };
-  }, [mode, pollingIntervalMs, updateTimeSeries]);
+  }, [pollingIntervalMs, updateTimeSeries]);
 
   const addEndpoint = useCallback((endpoint: string) => {
     nodeDiscovery.addEndpoint(endpoint);
@@ -160,17 +108,11 @@ export function useNodes({
   }, []);
 
   const refresh = useCallback(async () => {
-    if (mode === "live") {
-      setIsLoading(true);
-      const discoveredNodes = await nodeDiscovery.discoverNodes();
-      setNodes(discoveredNodes);
-      setConnections(nodeDiscovery.getConnections());
-      setIsLoading(false);
-    }
-  }, [mode]);
-
-  const handleSetNodeCount = useCallback((count: number) => {
-    setNodeCount(count);
+    setIsLoading(true);
+    const discoveredNodes = await nodeDiscovery.discoverNodes();
+    setNodes(discoveredNodes);
+    setConnections(nodeDiscovery.getConnections());
+    setIsLoading(false);
   }, []);
 
   return {
@@ -182,8 +124,5 @@ export function useNodes({
     addEndpoint,
     removeEndpoint,
     refresh,
-    setNodeCount: handleSetNodeCount,
-    setNetworkIssues,
-    networkIssues,
   };
 }
