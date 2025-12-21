@@ -6,6 +6,7 @@ import { nodeDiscovery, NodeConnection } from "@/lib/node-client";
 
 interface UseNodesOptions {
   pollingIntervalMs?: number;
+  registryScanIntervalMs?: number;
   timeSeriesPoints?: number;
 }
 
@@ -17,11 +18,14 @@ interface UseNodesReturn {
   error: string | null;
   addEndpoint: (endpoint: string) => void;
   removeEndpoint: (endpoint: string) => void;
+  removeOfflineNodes: () => number;
+  scanRegistry: () => Promise<void>;
   refresh: () => Promise<void>;
 }
 
 export function useNodes({
   pollingIntervalMs = 500,
+  registryScanIntervalMs = 60000,
   timeSeriesPoints = 60,
 }: UseNodesOptions = {}): UseNodesReturn {
   const [nodes, setNodes] = useState<NodeMetrics[]>([]);
@@ -79,23 +83,27 @@ export function useNodes({
     setError(null);
 
     // Start polling
-    nodeDiscovery.startPolling(pollingIntervalMs, (discoveredNodes) => {
-      setNodes(discoveredNodes);
-      setConnections(nodeDiscovery.getConnections());
-      updateTimeSeries(discoveredNodes);
-      setIsLoading(false);
+    nodeDiscovery.startPolling(
+      pollingIntervalMs,
+      (discoveredNodes) => {
+        setNodes(discoveredNodes);
+        setConnections(nodeDiscovery.getConnections());
+        updateTimeSeries(discoveredNodes);
+        setIsLoading(false);
 
-      if (discoveredNodes.length === 0) {
-        setError("No nodes discovered. Check if nodes are running.");
-      } else {
-        setError(null);
-      }
-    });
+        if (discoveredNodes.length === 0) {
+          setError("No nodes discovered. Check if nodes are running.");
+        } else {
+          setError(null);
+        }
+      },
+      registryScanIntervalMs,
+    );
 
     return () => {
       nodeDiscovery.stopPolling();
     };
-  }, [pollingIntervalMs, updateTimeSeries]);
+  }, [pollingIntervalMs, registryScanIntervalMs, updateTimeSeries]);
 
   const addEndpoint = useCallback((endpoint: string) => {
     nodeDiscovery.addEndpoint(endpoint);
@@ -103,6 +111,17 @@ export function useNodes({
 
   const removeEndpoint = useCallback((endpoint: string) => {
     nodeDiscovery.removeEndpoint(endpoint);
+    setConnections(nodeDiscovery.getConnections());
+  }, []);
+
+  const removeOfflineNodes = useCallback(() => {
+    const removed = nodeDiscovery.removeOfflineNodes();
+    setConnections(nodeDiscovery.getConnections());
+    return removed;
+  }, []);
+
+  const scanRegistry = useCallback(async () => {
+    await nodeDiscovery.scanForNodes();
     setConnections(nodeDiscovery.getConnections());
   }, []);
 
@@ -122,6 +141,8 @@ export function useNodes({
     error,
     addEndpoint,
     removeEndpoint,
+    removeOfflineNodes,
+    scanRegistry,
     refresh,
   };
 }

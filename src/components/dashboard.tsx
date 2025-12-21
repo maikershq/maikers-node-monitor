@@ -1,17 +1,19 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { MetricCard } from "./metric-card";
 import { VirtualizedNodeGrid } from "./virtualized-node-grid";
 import { LatencyChart } from "./latency-chart";
 import { ThroughputChart } from "./throughput-chart";
-import { EndpointManager } from "./endpoint-manager";
+import { SettingsPanel } from "./settings-panel";
 import { GlobalCellFabric } from "./global-cell-fabric";
 import { NodePool } from "./node-pool";
 import { LatencyHistogram } from "./latency-histogram";
 import { ClusterStatus } from "./cluster-status";
 import { useNodes } from "@/hooks/useNodes";
+import { useSettings } from "@/hooks/useSettings";
+import { nodeDiscovery } from "@/lib/node-client";
 import { formatNumber, formatLatency } from "@/lib/utils";
 import type { NetworkStats } from "@/lib/types";
 import { TOTAL_CELLS, DEFAULT_REPLICATION_FACTOR } from "@/lib/types";
@@ -29,6 +31,13 @@ import {
 
 export function Dashboard() {
   const [showSettings, setShowSettings] = useState(false);
+  const { settings, updateSettings, resetSettings, isLoaded } = useSettings();
+
+  useEffect(() => {
+    if (isLoaded) {
+      nodeDiscovery.setRegistryUrl(settings.registryUrl);
+    }
+  }, [settings.registryUrl, isLoaded]);
 
   const {
     nodes,
@@ -38,8 +47,11 @@ export function Dashboard() {
     error,
     addEndpoint,
     removeEndpoint,
+    removeOfflineNodes,
+    scanRegistry,
   } = useNodes({
-    pollingIntervalMs: 500,
+    pollingIntervalMs: settings.refreshRateMs,
+    registryScanIntervalMs: settings.registryScanIntervalMs,
     timeSeriesPoints: 60,
   });
 
@@ -145,11 +157,16 @@ export function Dashboard() {
 
       {showSettings && (
         <Card className="monitor-card mb-6 animate-in">
-          <CardContent className="p-4 space-y-4">
-            <EndpointManager
+          <CardContent className="p-4">
+            <SettingsPanel
+              settings={settings}
               connections={connections}
-              onAdd={addEndpoint}
-              onRemove={removeEndpoint}
+              onSettingsChange={updateSettings}
+              onResetSettings={resetSettings}
+              onAddEndpoint={addEndpoint}
+              onRemoveEndpoint={removeEndpoint}
+              onRemoveOfflineNodes={removeOfflineNodes}
+              onScanRegistry={scanRegistry}
             />
           </CardContent>
         </Card>
