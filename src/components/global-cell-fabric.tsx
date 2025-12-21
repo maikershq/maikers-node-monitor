@@ -29,8 +29,9 @@ export function GlobalCellFabric({ nodes, className }: GlobalCellFabricProps) {
       });
     }
 
-    // Aggregate from nodes
+    // Aggregate from online nodes only (offline nodes don't contribute to replication)
     nodes.forEach((node) => {
+      const isOnline = node.status !== "offline";
       node.cells.forEach((cell) => {
         const global = cellMap.get(cell.id);
         if (global) {
@@ -41,9 +42,12 @@ export function GlobalCellFabric({ nodes, className }: GlobalCellFabricProps) {
             queueDepth: cell.queueDepth,
             status: node.status,
           });
-          global.totalSignal += cell.signal;
-          global.totalQueueDepth += cell.queueDepth;
-          global.replicationCount++;
+          // Only count online nodes for replication and metrics
+          if (isOnline) {
+            global.totalSignal += cell.signal;
+            global.totalQueueDepth += cell.queueDepth;
+            global.replicationCount++;
+          }
         }
       });
     });
