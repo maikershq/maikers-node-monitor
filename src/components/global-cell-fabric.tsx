@@ -66,6 +66,27 @@ export function GlobalCellFabric({ nodes, className }: GlobalCellFabricProps) {
   const avgLoad =
     globalCells.reduce((s, c) => s + c.totalSignal, 0) / TOTAL_CELLS;
 
+  // Calculate load percentiles for border coloring
+  const loadPercentiles = useMemo(() => {
+    const sorted = [...globalCells]
+      .map((c) => c.totalQueueDepth)
+      .sort((a, b) => a - b);
+    const p50 = sorted[Math.floor(sorted.length * 0.5)] || 0;
+    const p75 = sorted[Math.floor(sorted.length * 0.75)] || 0;
+    const p90 = sorted[Math.floor(sorted.length * 0.9)] || 0;
+    return { p50, p75, p90 };
+  }, [globalCells]);
+
+  const getLoadBorderColor = (queueDepth: number): string => {
+    if (queueDepth > loadPercentiles.p90 && loadPercentiles.p90 > 0)
+      return "#ef4444"; // red - top 10%
+    if (queueDepth > loadPercentiles.p75 && loadPercentiles.p75 > 0)
+      return "#f97316"; // orange - top 25%
+    if (queueDepth > loadPercentiles.p50 && loadPercentiles.p50 > 0)
+      return "#eab308"; // yellow - top 50%
+    return "#3f3f46"; // zinc-700 - normal
+  };
+
   const cols = 8; // 8x8 grid for 64 cells
 
   return (
@@ -118,21 +139,21 @@ export function GlobalCellFabric({ nodes, className }: GlobalCellFabricProps) {
               const hue = 260 - intensity * 30;
               const alpha = 0.1 + intensity * 0.5;
               const isHighLoad = cell.totalSignal > 80;
-              const isDegraded = !cell.healthy && cell.replicationCount > 0;
               const isEmpty = cell.replicationCount === 0;
+              const borderColor = getLoadBorderColor(cell.totalQueueDepth);
 
               return (
                 <div
                   key={cell.id}
                   className={twMerge(
-                    "relative cursor-crosshair transition-all rounded aspect-square",
+                    "relative cursor-crosshair transition-all rounded aspect-square border",
                     isHighLoad && "animate-pulse",
-                    isDegraded && "ring-1 ring-[var(--sys-warn)]/50",
                   )}
                   style={{
                     backgroundColor: isEmpty
                       ? "#18181b"
                       : `hsla(${hue}, 60%, 50%, ${alpha})`,
+                    borderColor,
                   }}
                   title={`Cell ${cell.id} • RF: ${cell.replicationCount}/${DEFAULT_REPLICATION_FACTOR} • Signal: ${Math.round(cell.totalSignal)}% • Queue: ${cell.totalQueueDepth}`}
                 >
@@ -160,22 +181,6 @@ export function GlobalCellFabric({ nodes, className }: GlobalCellFabricProps) {
                       },
                     )}
                   </div>
-
-                  {/* Queue depth indicator */}
-                  {cell.totalQueueDepth > 0 && (
-                    <div className="absolute top-0.5 right-0.5">
-                      <div
-                        className={twMerge(
-                          "w-2 h-2 rounded-full",
-                          cell.totalQueueDepth > 10
-                            ? "bg-[var(--sys-danger)]"
-                            : cell.totalQueueDepth > 5
-                              ? "bg-[var(--sys-warn)]"
-                              : "bg-[var(--sys-accent)]",
-                        )}
-                      />
-                    </div>
-                  )}
                 </div>
               );
             })}
@@ -183,22 +188,37 @@ export function GlobalCellFabric({ nodes, className }: GlobalCellFabricProps) {
         </div>
 
         {/* Legend */}
-        <div className="flex items-center justify-between mt-2 text-[9px] text-zinc-600 flex-none">
-          <div className="flex items-center gap-3">
+        <div className="flex items-center justify-between mt-2 text-[9px] text-zinc-600 flex-none flex-wrap gap-2">
+          <div className="flex items-center gap-2">
+            <span className="text-zinc-500">RF:</span>
             <div className="flex items-center gap-1">
               <span className="w-1.5 h-1.5 rounded-full bg-[var(--sys-success)]" />
-              <span>Healthy</span>
+              <span>3+</span>
             </div>
             <div className="flex items-center gap-1">
               <span className="w-1.5 h-1.5 rounded-full bg-[var(--sys-warn)]" />
-              <span>Degraded</span>
+              <span>2</span>
             </div>
             <div className="flex items-center gap-1">
               <span className="w-1.5 h-1.5 rounded-full bg-[var(--sys-danger)]" />
-              <span>Critical</span>
+              <span>≤1</span>
             </div>
           </div>
-          <span className="font-mono">{TOTAL_CELLS} shards</span>
+          <div className="flex items-center gap-2">
+            <span className="text-zinc-500">Load:</span>
+            <div className="flex items-center gap-1">
+              <span className="w-2 h-2 rounded-sm border border-[#ef4444] bg-zinc-900" />
+              <span>Hot</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <span className="w-2 h-2 rounded-sm border border-[#f97316] bg-zinc-900" />
+              <span>High</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <span className="w-2 h-2 rounded-sm border border-[#eab308] bg-zinc-900" />
+              <span>Med</span>
+            </div>
+          </div>
         </div>
       </CardContent>
     </Card>
