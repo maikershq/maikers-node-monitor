@@ -1,6 +1,6 @@
-# Cellular Stigmergy Monitor
+# maikers Node Monitor
 
-Real-time monitoring dashboard for the Maikers Cellular Stigmergy Network.
+Real-time monitoring dashboard for maikers nodes.
 
 ## Features
 
@@ -24,6 +24,7 @@ Open [http://localhost:3000](http://localhost:3000).
 The monitor connects to nodes via HTTP on port 8080 by default. Ensure nodes are running with the HTTP metrics server enabled.
 
 Default endpoints:
+
 - `http://localhost:8080`
 - `http://localhost:8081`
 - `http://localhost:8082`
@@ -43,7 +44,13 @@ Nodes expose a `/metrics` endpoint returning:
   "uptime": 3600,
   "cells": [{ "id": 0, "signal": 45, "tasks": 10 }],
   "workers": { "active": 20, "total": 20, "max": 10000 },
-  "latency": { "p50": 5.2, "p95": 12.1, "p99": 25.3, "avg": 6.8, "samples": 1000 },
+  "latency": {
+    "p50": 5.2,
+    "p95": 12.1,
+    "p99": 25.3,
+    "avg": 6.8,
+    "samples": 1000
+  },
   "throughput": 1500,
   "tasksProcessed": 50000,
   "tasksFailed": 12,
@@ -54,7 +61,7 @@ Nodes expose a `/metrics` endpoint returning:
 
 ## Tech Stack
 
-- Next.js 15
+- Next.js 16
 - Tailwind CSS
 - Recharts
 - Zod
