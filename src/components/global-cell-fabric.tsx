@@ -67,10 +67,9 @@ export function GlobalCellFabric({ nodes, className }: GlobalCellFabricProps) {
     globalCells.reduce((s, c) => s + c.totalSignal, 0) / TOTAL_CELLS;
 
   const cols = 8; // 8x8 grid for 64 cells
-  const cellSize = 20;
 
   return (
-    <Card className={twMerge("monitor-card", className)}>
+    <Card className={twMerge("monitor-card h-full", className)}>
       <CardHeader className="pb-2 pt-3">
         <CardTitle className="flex items-center justify-between text-sm font-medium">
           <div className="flex items-center gap-2">
@@ -101,11 +100,11 @@ export function GlobalCellFabric({ nodes, className }: GlobalCellFabricProps) {
           </div>
         </CardTitle>
       </CardHeader>
-      <CardContent className="pt-0 pb-3">
+      <CardContent className="pt-0 pb-3 flex-1">
         <div
-          className="inline-grid gap-0.5 rounded overflow-hidden p-1"
+          className="grid gap-1 rounded overflow-hidden p-1 w-full"
           style={{
-            gridTemplateColumns: `repeat(${cols}, ${cellSize}px)`,
+            gridTemplateColumns: `repeat(${cols}, 1fr)`,
             backgroundColor: "#0a0a0c",
           }}
         >
@@ -121,13 +120,11 @@ export function GlobalCellFabric({ nodes, className }: GlobalCellFabricProps) {
               <div
                 key={cell.id}
                 className={twMerge(
-                  "relative cursor-crosshair transition-all rounded-sm",
+                  "relative cursor-crosshair transition-all rounded aspect-square",
                   isHighLoad && "animate-pulse",
                   isDegraded && "ring-1 ring-[var(--sys-warn)]/50",
                 )}
                 style={{
-                  width: cellSize,
-                  height: cellSize,
                   backgroundColor: isEmpty
                     ? "#18181b"
                     : `hsla(${hue}, 60%, 50%, ${alpha})`,
@@ -141,7 +138,7 @@ export function GlobalCellFabric({ nodes, className }: GlobalCellFabricProps) {
                       <div
                         key={i}
                         className={twMerge(
-                          "w-1 h-1 rounded-full",
+                          "w-1.5 h-1.5 rounded-full",
                           i < cell.replicationCount
                             ? "bg-[var(--sys-success)]"
                             : "bg-zinc-700",
@@ -156,7 +153,7 @@ export function GlobalCellFabric({ nodes, className }: GlobalCellFabricProps) {
                   <div className="absolute top-0.5 right-0.5">
                     <div
                       className={twMerge(
-                        "w-1.5 h-1.5 rounded-full",
+                        "w-2 h-2 rounded-full",
                         cell.totalQueueDepth > 10
                           ? "bg-[var(--sys-danger)]"
                           : cell.totalQueueDepth > 5
