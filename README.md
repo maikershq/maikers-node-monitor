@@ -1,4 +1,4 @@
-# maikers-node-monitor
+# Maikers Node Monitor
 
 [![Next.js](https://img.shields.io/badge/Next.js-16-black)](https://nextjs.org/)
 [![React](https://img.shields.io/badge/React-19-61DAFB)](https://react.dev/)
