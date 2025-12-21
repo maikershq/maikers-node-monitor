@@ -163,11 +163,14 @@ export function GlobalCellFabric({ nodes, className }: GlobalCellFabricProps) {
                       (_, i) => {
                         const isFilled = i < cell.replicationCount;
                         const replicationColor =
-                          cell.replicationCount >= DEFAULT_REPLICATION_FACTOR
-                            ? "bg-[var(--sys-success)]"
-                            : cell.replicationCount >= 2
-                              ? "bg-[var(--sys-warn)]"
-                              : "bg-[var(--sys-danger)]";
+                          cell.replicationCount === 0
+                            ? "bg-zinc-700"
+                            : cell.replicationCount >=
+                                DEFAULT_REPLICATION_FACTOR
+                              ? "bg-[var(--sys-success)]"
+                              : cell.replicationCount === 1
+                                ? "bg-[var(--sys-danger)]"
+                                : "bg-[var(--sys-warn)]";
 
                         return (
                           <div
@@ -192,16 +195,20 @@ export function GlobalCellFabric({ nodes, className }: GlobalCellFabricProps) {
           <div className="flex items-center gap-2">
             <span className="text-zinc-500">RF:</span>
             <div className="flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-[var(--sys-success)]" />
-              <span>3+</span>
+              <span className="w-1.5 h-1.5 rounded-full bg-zinc-700" />
+              <span>0</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-[var(--sys-danger)]" />
+              <span>1</span>
             </div>
             <div className="flex items-center gap-1">
               <span className="w-1.5 h-1.5 rounded-full bg-[var(--sys-warn)]" />
               <span>2</span>
             </div>
             <div className="flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-[var(--sys-danger)]" />
-              <span>≤1</span>
+              <span className="w-1.5 h-1.5 rounded-full bg-[var(--sys-success)]" />
+              <span>3+</span>
             </div>
           </div>
           <div className="flex items-center gap-2">
