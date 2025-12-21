@@ -1,0 +1,18 @@
+User-agent: *
+Allow: /
+
+# Important pages
+Allow: /api/auth/status
+Allow: /auth/success
+Allow: /demo
+
+# Block admin/sensitive areas
+Disallow: /api/
+Disallow: /_next/
+Disallow: /.well-known/
+
+# Sitemap
+Sitemap: https://localhost:3000/sitemap.xml
+
+# Crawl delay
+Crawl-delay: 1
