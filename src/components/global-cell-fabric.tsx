@@ -5,7 +5,7 @@ import { twMerge } from "tailwind-merge";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import type { NodeMetrics, GlobalCell } from "@/lib/types";
 import { TOTAL_CELLS, DEFAULT_REPLICATION_FACTOR } from "@/lib/types";
-import { Cpu, Activity, ShieldCheck, ShieldAlert, BarChart3 } from "lucide-react";
+import { Cpu, AlertCircle } from "lucide-react";
 
 interface GlobalCellFabricProps {
   nodes: NodeMetrics[];
@@ -13,7 +13,7 @@ interface GlobalCellFabricProps {
 }
 
 export function GlobalCellFabric({ nodes, className }: GlobalCellFabricProps) {
-  const [hoveredCellId, setHoveredCellId] = useState<number | null>(null);
+  const [hoveredId, setHoveredId] = useState<number | null>(null);
 
   // Aggregate cells from all nodes into global view
   const globalCells = useMemo<GlobalCell[]>(() => {
@@ -64,11 +64,6 @@ export function GlobalCellFabric({ nodes, className }: GlobalCellFabricProps) {
     return Array.from(cellMap.values()).sort((a, b) => a.id - b.id);
   }, [nodes]);
 
-  const hoveredCell = useMemo(
-    () => (hoveredCellId !== null ? globalCells[hoveredCellId] : null),
-    [hoveredCellId, globalCells],
-  );
-
   const healthyCells = globalCells.filter((c) => c.healthy).length;
   const degradedCells = globalCells.filter(
     (c) => c.replicationCount > 0 && !c.healthy,
@@ -76,127 +71,40 @@ export function GlobalCellFabric({ nodes, className }: GlobalCellFabricProps) {
   const avgLoad =
     globalCells.reduce((s, c) => s + c.totalSignal, 0) / TOTAL_CELLS;
 
-  const loadPercentiles = useMemo(() => {
-    const sorted = [...globalCells]
-      .map((c) => c.totalQueueDepth)
-      .sort((a, b) => a - b);
-    const p50 = sorted[Math.floor(sorted.length * 0.5)] || 0;
-    const p75 = sorted[Math.floor(sorted.length * 0.75)] || 0;
-    const p90 = sorted[Math.floor(sorted.length * 0.9)] || 0;
-    return { p50, p75, p90 };
-  }, [globalCells]);
-
-  const getLoadBorderColor = (queueDepth: number): string => {
-    if (queueDepth > loadPercentiles.p90 && loadPercentiles.p90 > 0)
-      return "#ef4444";
-    if (queueDepth > loadPercentiles.p75 && loadPercentiles.p75 > 0)
-      return "#f97316";
-    if (queueDepth > loadPercentiles.p50 && loadPercentiles.p50 > 0)
-      return "#eab308";
-    return "#3f3f46";
-  };
-
   const cols = 8;
 
   return (
     <Card className={twMerge("monitor-card h-full flex flex-col", className)}>
-      <CardHeader className="pb-2 pt-3 flex-none">
-        <div className="flex items-center justify-between mb-2">
-          <CardTitle className="flex items-center gap-2 text-sm font-medium">
-            <Cpu className="w-3.5 h-3.5 text-[var(--sys-tee)]" />
+      <CardHeader className="pb-3 pt-4 flex-none">
+        <CardTitle className="flex items-center justify-between text-sm font-medium">
+          <div className="flex items-center gap-2">
+            <Cpu className="w-4 h-4 text-[var(--sys-tee)]" />
             Shards
-          </CardTitle>
-          <div className="flex items-center gap-3 text-[10px] font-normal">
-            <span className="text-[var(--sys-success)]">
-              {healthyCells} healthy
-            </span>
-            {degradedCells > 0 && (
-              <span className="text-[var(--sys-warn)]">
-                {degradedCells} degraded
-              </span>
-            )}
-            <span
-              className={twMerge(
-                "font-mono",
-                avgLoad > 80
-                  ? "text-[var(--sys-danger)]"
-                  : avgLoad > 50
-                    ? "text-[var(--sys-warn)]"
-                    : "text-zinc-500",
-              )}
-            >
-              {avgLoad.toFixed(0)}% avg load
-            </span>
           </div>
-        </div>
-
-        {/* Dynamic Detail Strip */}
-        <div className="h-10 bg-zinc-900/50 rounded border border-zinc-800/50 flex items-center px-3 gap-6 transition-colors">
-          {hoveredCell ? (
-            <>
-              <div className="flex flex-col">
-                <span className="text-[9px] uppercase tracking-wider text-zinc-600 font-mono">
-                  Shard
-                </span>
-                <span className="text-xs font-mono text-zinc-200">
-                  #{hoveredCell.id.toString().padStart(2, "0")}
-                </span>
-              </div>
-              <div className="flex flex-col">
-                <span className="text-[9px] uppercase tracking-wider text-zinc-600 font-mono">
-                  Status
-                </span>
-                <div className="flex items-center gap-1.5">
-                  {hoveredCell.healthy ? (
-                    <ShieldCheck className="w-3 h-3 text-[var(--sys-success)]" />
-                  ) : (
-                    <ShieldAlert className="w-3 h-3 text-[var(--sys-warn)]" />
-                  )}
-                  <span className="text-[10px] text-zinc-300">
-                    {hoveredCell.replicationCount}/{DEFAULT_REPLICATION_FACTOR} RF
-                  </span>
-                </div>
-              </div>
-              <div className="flex flex-col">
-                <span className="text-[9px] uppercase tracking-wider text-zinc-600 font-mono">
-                  Pressure
-                </span>
-                <div className="flex items-center gap-2">
-                  <div className="w-12 h-1 bg-zinc-800 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-cyan-500 transition-all duration-300"
-                      style={{ width: `${hoveredCell.totalSignal}%` }}
-                    />
-                  </div>
-                  <span className="text-[10px] font-mono text-zinc-400">
-                    {Math.round(hoveredCell.totalSignal)}%
-                  </span>
-                </div>
-              </div>
-              <div className="flex flex-col ml-auto">
-                <span className="text-[9px] uppercase tracking-wider text-zinc-600 font-mono text-right">
-                  Queue
-                </span>
-                <span className="text-[10px] font-mono text-zinc-300 text-right">
-                  {hoveredCell.totalQueueDepth} pkts
-                </span>
-              </div>
-            </>
-          ) : (
-            <div className="flex items-center gap-2 text-zinc-600">
-              <Activity className="w-3 h-3" />
-              <span className="text-[10px]">Hover a shard for metrics</span>
+          <div className="flex items-center gap-4 text-[11px] font-normal">
+            <div className="flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-[var(--sys-success)]" />
+              <span className="text-zinc-400">{healthyCells} healthy</span>
             </div>
-          )}
-        </div>
+            {degradedCells > 0 && (
+              <div className="flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-[var(--sys-warn)] animate-pulse" />
+                <span className="text-zinc-400">{degradedCells} degraded</span>
+              </div>
+            )}
+            <div className="flex items-center gap-1.5 border-l border-zinc-800 pl-4">
+              <span className="text-zinc-500 font-mono">{avgLoad.toFixed(0)}% avg load</span>
+            </div>
+          </div>
+        </CardTitle>
       </CardHeader>
 
-      <CardContent className="pt-0 pb-3 flex-1 flex flex-col min-h-0">
-        <div className="flex-1 min-h-0 flex items-center justify-center py-2">
+      <CardContent className="pt-0 pb-4 flex-1 flex flex-col min-h-0">
+        <div className="flex-1 min-h-0 flex items-center justify-center">
           <div
             className={twMerge(
-              "grid gap-1.5 rounded-lg p-2 bg-black/40 border border-zinc-800/30",
-              "w-full aspect-square max-w-[420px]",
+              "grid gap-1.5",
+              "w-full aspect-square max-w-[440px]",
               "lg:w-auto lg:h-full lg:max-w-none",
             )}
             style={{
@@ -205,112 +113,109 @@ export function GlobalCellFabric({ nodes, className }: GlobalCellFabricProps) {
           >
             {globalCells.map((cell) => {
               const intensity = cell.totalSignal / 100;
-              const isHighLoad = cell.totalSignal > 80;
               const isEmpty = cell.replicationCount === 0;
-              const borderColor = getLoadBorderColor(cell.totalQueueDepth);
-              const isHovered = hoveredCellId === cell.id;
+              const isDegraded = !cell.healthy && !isEmpty;
+              const isHighQueue = cell.totalQueueDepth > 5;
+              const isHovered = hoveredId === cell.id;
 
               return (
                 <div
                   key={cell.id}
-                  onMouseEnter={() => setHoveredCellId(cell.id)}
-                  onMouseLeave={() => setHoveredCellId(null)}
+                  onMouseEnter={() => setHoveredId(cell.id)}
+                  onMouseLeave={() => setHoveredId(null)}
                   className={twMerge(
-                    "relative cursor-crosshair transition-all duration-200 rounded-[2px] border group",
-                    isHighLoad && "animate-pulse",
-                    isHovered ? "scale-110 z-10 border-white/40 ring-4 ring-cyan-500/10" : "scale-100",
+                    "relative cursor-crosshair transition-all duration-150 rounded-sm border overflow-hidden",
+                    isDegraded && "border-amber-500/40 ring-1 ring-amber-500/20",
+                    !isDegraded && "border-white/5",
+                    isHovered && "scale-105 z-10 border-white/20 shadow-xl",
                   )}
                   style={{
                     backgroundColor: isEmpty
                       ? "#09090b"
                       : `rgba(99, 102, 241, ${0.05 + intensity * 0.4})`,
-                    borderColor: isHovered ? undefined : borderColor,
-                    boxShadow: isHovered && !isEmpty ? `0 0 15px rgba(99, 102, 241, ${0.2 + intensity * 0.3})` : 'none'
                   }}
                 >
-                  {/* Shard Background Pattern */}
+                  {/* Heatmap overlay for signal intensity */}
                   {!isEmpty && (
-                    <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_center,_white_1px,_transparent_1px)] bg-[size:4px_4px]" />
+                    <div 
+                      className="absolute inset-0 pointer-events-none opacity-50"
+                      style={{
+                        background: `radial-gradient(circle at center, rgba(139, 92, 246, ${intensity}), transparent)`,
+                      }}
+                    />
                   )}
 
-                  {/* Replication Pips */}
-                  <div className="absolute inset-x-0 bottom-0.5 flex justify-center gap-[1px] px-0.5">
-                    {Array.from({ length: DEFAULT_REPLICATION_FACTOR }).map(
-                      (_, i) => {
-                        const isFilled = i < cell.replicationCount;
-                        const pipColor =
-                          cell.replicationCount === 0
-                            ? "bg-zinc-800"
-                            : cell.replicationCount >= DEFAULT_REPLICATION_FACTOR
-                              ? "bg-emerald-500"
-                              : cell.replicationCount === 1
-                                ? "bg-red-500"
-                                : "bg-amber-500";
-
-                        return (
-                          <div
-                            key={i}
-                            className={twMerge(
-                              "h-1 rounded-[1px] transition-all",
-                              isFilled ? pipColor : "bg-zinc-800",
-                              "flex-1"
-                            )}
-                          />
-                        );
-                      },
-                    )}
+                  {/* Replication Dots (Glanceable RF) */}
+                  <div className="absolute bottom-1 inset-x-0 flex justify-center gap-0.5 px-0.5">
+                    {Array.from({ length: DEFAULT_REPLICATION_FACTOR }).map((_, i) => {
+                      const isFilled = i < cell.replicationCount;
+                      const dotColor = 
+                        cell.replicationCount >= DEFAULT_REPLICATION_FACTOR ? "bg-emerald-500" :
+                        cell.replicationCount === 2 ? "bg-amber-500" :
+                        cell.replicationCount === 1 ? "bg-red-500" : "bg-zinc-800";
+                      
+                      return (
+                        <div 
+                          key={i}
+                          className={twMerge(
+                            "w-1 h-1 rounded-full transition-colors duration-300",
+                            isFilled ? dotColor : "bg-zinc-800/50"
+                          )}
+                        />
+                      );
+                    })}
                   </div>
 
-                  {/* Shard ID (Top Left) - only visible on high intensity or hover */}
-                  <span className={twMerge(
-                    "absolute top-0.5 left-0.5 text-[6px] font-mono transition-opacity",
-                    isHovered ? "opacity-100 text-zinc-300" : "opacity-20 text-zinc-600"
-                  )}>
-                    {cell.id.toString().padStart(2, '0')}
-                  </span>
+                  {/* Congestion Indicator (Top Right) */}
+                  {cell.totalQueueDepth > 0 && (
+                    <div className="absolute top-0.5 right-0.5">
+                      <div className={twMerge(
+                        "w-1.5 h-1.5 rounded-full",
+                        isHighQueue ? "bg-red-500 shadow-[0_0_4px_rgba(239,68,68,0.8)] animate-pulse" : "bg-cyan-400"
+                      )} />
+                    </div>
+                  )}
+
+                  {/* Hover Overlay */}
+                  {isHovered && (
+                    <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center p-1 animate-in fade-in duration-200">
+                      <span className="text-[9px] font-mono text-white leading-none mb-1">#{cell.id}</span>
+                      <div className="flex flex-col items-center gap-0.5">
+                        <span className="text-[7px] text-zinc-400 font-mono">{cell.replicationCount} RF</span>
+                        <span className="text-[7px] text-zinc-400 font-mono">{cell.totalQueueDepth} Q</span>
+                      </div>
+                    </div>
+                  )}
                 </div>
               );
             })}
           </div>
         </div>
 
-        {/* Legend */}
-        <div className="flex items-center justify-between mt-2 text-[9px] text-zinc-600 flex-none px-1">
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-1.5">
-              <span className="text-zinc-500">RF:</span>
-              <div className="flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-[1px] bg-emerald-500" />
-                <span>3+</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-[1px] bg-amber-500" />
-                <span>2</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-[1px] bg-red-500" />
-                <span>1</span>
+        {/* Simplified Legend */}
+        <div className="flex items-center justify-between mt-3 px-2 text-[10px] text-zinc-500 border-t border-zinc-800/50 pt-3">
+          <div className="flex items-center gap-5">
+            <div className="flex items-center gap-2">
+              <span className="text-zinc-600 uppercase tracking-tighter text-[9px]">Replication:</span>
+              <div className="flex gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" title="Healthy (3+)" />
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-500" title="Degraded (2)" />
+                <span className="w-1.5 h-1.5 rounded-full bg-red-500" title="Critical (1)" />
               </div>
             </div>
-            <div className="flex items-center gap-1.5 border-l border-zinc-800 pl-4">
-              <span className="text-zinc-500">Pressure:</span>
-              <div className="flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-[1px] border border-red-500" />
-                <span>Hot</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-[1px] border border-orange-500" />
-                <span>High</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-[1px] border border-yellow-500" />
-                <span>Med</span>
+            <div className="flex items-center gap-2">
+              <span className="text-zinc-600 uppercase tracking-tighter text-[9px]">Queue:</span>
+              <div className="flex gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" title="Processing" />
+                <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" title="Backlogged" />
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-1 text-zinc-500">
-            <BarChart3 className="w-2.5 h-2.5" />
-            <span className="font-mono">Global Mesh v1.0</span>
+          <div className="flex items-center gap-2">
+             <span className="text-zinc-600 uppercase tracking-tighter text-[9px]">Load:</span>
+             <div className="flex items-center h-1.5 w-16 bg-zinc-800 rounded-full overflow-hidden">
+                <div className="h-full bg-indigo-500/50 w-full bg-gradient-to-r from-transparent to-indigo-500" />
+             </div>
           </div>
         </div>
       </CardContent>
