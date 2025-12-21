@@ -73,40 +73,45 @@ export function Dashboard() {
   }, [nodes]);
 
   return (
-    <div className="min-h-screen bg-[#111111] bg-pattern text-white p-4 md:p-6">
-      <header className="flex items-center justify-between mb-8 animate-in">
+    <div className="min-h-screen bg-[var(--background)] bg-pattern text-white p-4 md:p-6">
+      <header className="flex items-center justify-between mb-6 animate-in border-b border-zinc-800/50 pb-4">
         <div className="flex items-center gap-3">
           <div
             className={`w-2.5 h-2.5 rounded-full ${
               isLoading
-                ? "bg-amber-400 animate-pulse"
+                ? "bg-[var(--sys-warn)] animate-pulse"
                 : error
-                  ? "bg-red-400"
-                  : "bg-cyan-400 animate-pulse"
+                  ? "bg-[var(--sys-danger)]"
+                  : "bg-[var(--sys-accent)] animate-pulse"
             }`}
           />
           <div>
-            <h1 className="text-xl md:text-2xl font-heading font-bold">
+            <h1 className="text-lg md:text-xl font-heading font-bold flex items-center gap-2">
               maikers nodes
+              {stats.activeNodes > 0 && (
+                <span className="text-[10px] bg-[var(--sys-tee)]/20 text-[var(--sys-tee)] px-2 py-0.5 rounded border border-[var(--sys-tee)]/30">
+                  TEE Protected
+                </span>
+              )}
             </h1>
-            <p className="text-xs text-zinc-500">
+            <p className="text-[10px] text-zinc-500">
               Live network discovery
               {nodes.length > 0 && ` • ${nodes.length} nodes`}
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-4">
           <button
             onClick={() => setShowSettings(!showSettings)}
             className={`p-2 rounded-lg transition-colors ${
               showSettings
-                ? "bg-cyan-500/20 text-cyan-400"
+                ? "bg-[var(--sys-accent)]/20 text-[var(--sys-accent)]"
                 : "text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800"
             }`}
           >
             <Settings className="w-4 h-4" />
           </button>
-          <div className="text-xs text-zinc-600 font-mono tabular-nums">
+          <div className="text-[10px] text-zinc-600 font-mono tabular-nums">
             {new Date().toLocaleTimeString()}
           </div>
         </div>
@@ -147,69 +152,71 @@ export function Dashboard() {
 
       {nodes.length > 0 && (
         <>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-8 animate-in">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2 mb-6 animate-in">
             <MetricCard
               label="Nodes"
               value={stats.totalNodes}
               subValue={`${stats.attestedNodes} attested`}
-              icon={<Server className="w-5 h-5" />}
+              icon={<Server className="w-4 h-4" />}
             />
             <MetricCard
               label="Throughput"
               value={formatNumber(stats.totalThroughput)}
               subValue="ops/s"
               trend="up"
-              icon={<Zap className="w-5 h-5" />}
+              icon={<Zap className="w-4 h-4" />}
             />
             <MetricCard
               label="Latency P99"
               value={formatLatency(stats.avgLatencyP99)}
-              icon={<Clock className="w-5 h-5" />}
+              trend={stats.avgLatencyP99 > 500 ? "down" : undefined}
+              icon={<Clock className="w-4 h-4" />}
             />
             <MetricCard
               label="Cells"
               value={formatNumber(stats.totalCells)}
               subValue="shards"
-              icon={<Cpu className="w-5 h-5" />}
+              icon={<Cpu className="w-4 h-4" />}
             />
             <MetricCard
               label="Secure"
               value={`${stats.secureNodes}/${stats.totalNodes}`}
               subValue={stats.secureNodes > 0 ? "TEE protected" : "insecure"}
-              icon={<ShieldCheck className="w-5 h-5" />}
+              icon={<ShieldCheck className="w-4 h-4" />}
             />
             <MetricCard
               label="Active"
               value={stats.activeNodes}
               subValue="nodes online"
-              icon={<Activity className="w-5 h-5" />}
+              trend={stats.activeNodes === stats.totalNodes ? "up" : undefined}
+              icon={<Activity className="w-4 h-4" />}
             />
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-8 animate-in">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-6 animate-in">
             <Card className="monitor-card">
-              <CardHeader className="pb-2">
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <Zap className="w-4 h-4 text-cyan-400" />
+              <CardHeader className="pb-2 pt-3">
+                <CardTitle className="flex items-center gap-2 text-sm font-medium">
+                  <Zap className="w-3.5 h-3.5 text-[var(--sys-accent)]" />
                   Throughput
                 </CardTitle>
               </CardHeader>
-              <CardContent className="pt-0">
-                <div className="h-48">
+              <CardContent className="pt-0 pb-3">
+                <div className="h-40">
                   <ThroughputChart data={timeSeries} />
                 </div>
               </CardContent>
             </Card>
 
             <Card className="monitor-card">
-              <CardHeader className="pb-2">
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <Clock className="w-4 h-4 text-teal-400" />
+              <CardHeader className="pb-2 pt-3">
+                <CardTitle className="flex items-center gap-2 text-sm font-medium">
+                  <Clock className="w-3.5 h-3.5 text-[var(--sys-success)]" />
                   Latency Distribution
                 </CardTitle>
               </CardHeader>
-              <CardContent className="pt-0">
-                <div className="h-48">
+              <CardContent className="pt-0 pb-3">
+                <div className="h-40">
                   <LatencyChart data={timeSeries} />
                 </div>
               </CardContent>

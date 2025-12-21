@@ -13,33 +13,56 @@ export function CellFabric({ cells, className }: CellFabricProps) {
 
   return (
     <div
-      className={twMerge(
-        "grid gap-px bg-zinc-800/50 p-px rounded-lg",
-        className,
-      )}
-      style={{ gridTemplateColumns: `repeat(${cols}, 1fr)` }}
+      className={twMerge("grid gap-px rounded-lg overflow-hidden", className)}
+      style={{
+        gridTemplateColumns: `repeat(${cols}, 1fr)`,
+        backgroundColor: "#27272a",
+      }}
     >
       {cells.map((cell) => {
         const intensity = cell.signal / 100;
-        // Cyan to teal gradient based on intensity
-        const bgColor =
-          intensity > 0.05
-            ? `rgba(6, 182, 212, ${0.1 + intensity * 0.5})`
-            : "transparent";
+        // Purple hue shifting from simulation: 260 - intensity * 30
+        const hue = 260 - intensity * 30;
+        const alpha = 0.05 + intensity * 0.35;
+        const isHighLoad = cell.signal > 80;
+        const dots = Math.min(cell.queueDepth, 9);
 
         return (
           <div
             key={cell.id}
-            className="aspect-square bg-zinc-900 relative group cursor-pointer transition-all duration-200 hover:scale-110 hover:z-10 hover:ring-1 hover:ring-cyan-400/50"
-            style={{ backgroundColor: bgColor }}
-            title={`Cell ${cell.id}: Signal ${cell.signal.toFixed(0)}%, Queue ${cell.queueDepth}`}
+            className={twMerge(
+              "cell-shard aspect-square relative cursor-crosshair",
+              isHighLoad && "animate-backpressure border border-transparent",
+            )}
+            style={{
+              backgroundColor:
+                intensity > 0.02
+                  ? `hsla(${hue}, 60%, 50%, ${alpha})`
+                  : "#18181b",
+            }}
+            title={`Cell ${cell.id} • Signal: ${Math.round(cell.signal)}% • Queue: ${cell.queueDepth}`}
           >
-            {cell.queueDepth > 0 && (
-              <div className="absolute inset-0 flex items-center justify-center">
-                <span className="text-[6px] text-zinc-400 font-mono tabular-nums">
-                  {cell.queueDepth}
-                </span>
+            {/* Task dots grid */}
+            {dots > 0 && (
+              <div className="absolute inset-0 p-[15%] grid grid-cols-3 gap-px content-center justify-items-center pointer-events-none">
+                {Array.from({ length: dots }).map((_, i) => {
+                  let dotClass = "dot-quick";
+                  if (cell.queueDepth > 8) dotClass = "dot-heavy";
+                  else if (cell.queueDepth > 4) dotClass = "dot-medium";
+
+                  return (
+                    <div
+                      key={i}
+                      className={twMerge("w-1 h-1 rounded-full", dotClass)}
+                    />
+                  );
+                })}
               </div>
+            )}
+
+            {/* Gossip distress pulse */}
+            {isHighLoad && (
+              <div className="absolute inset-0 bg-[var(--sys-danger)]/20 animate-pulse" />
             )}
           </div>
         );

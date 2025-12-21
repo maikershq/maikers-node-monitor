@@ -24,15 +24,23 @@ interface NodeCardProps {
 function getStatusIndicator(status: NodeStatus) {
   switch (status) {
     case "offline":
-      return { color: "bg-red-500", icon: WifiOff, label: "Offline" };
+      return {
+        color: "bg-[var(--sys-danger)]",
+        icon: WifiOff,
+        label: "Offline",
+      };
     case "degraded":
       return {
-        color: "bg-amber-500 animate-pulse",
+        color: "bg-[var(--sys-warn)] animate-pulse",
         icon: AlertTriangle,
         label: "Degraded",
       };
     default:
-      return { color: "bg-cyan-400", icon: null, label: "Healthy" };
+      return {
+        color: "bg-[var(--sys-accent)] animate-pulse",
+        icon: null,
+        label: "Healthy",
+      };
   }
 }
 
@@ -63,23 +71,21 @@ function NodeCardComponent({ node, className }: NodeCardProps) {
               <StatusIcon className="w-3.5 h-3.5 text-amber-400" />
             )}
           </CardTitle>
-          <div className="flex items-center gap-1.5">
-            {node.secure ? (
-              <>
-                <ShieldCheck className="w-4 h-4 text-cyan-400" />
-                <span className="text-[10px] text-cyan-400 font-medium">
-                  {node.teePlatform}
-                </span>
-              </>
-            ) : (
-              <>
-                <Shield className="w-4 h-4 text-zinc-500" />
-                <span className="text-[10px] text-zinc-500 font-medium">
-                  Insecure
-                </span>
-              </>
-            )}
-          </div>
+          {node.secure ? (
+            <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-[var(--sys-tee)]/20 border border-[var(--sys-tee)]/50">
+              <ShieldCheck className="w-3 h-3 text-[var(--sys-tee)]" />
+              <span className="text-[9px] text-[var(--sys-tee)] font-medium">
+                {node.teePlatform}
+              </span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-zinc-800/50 border border-zinc-700/50">
+              <Shield className="w-3 h-3 text-zinc-500" />
+              <span className="text-[9px] text-zinc-500 font-medium">
+                Insecure
+              </span>
+            </div>
+          )}
         </div>
         <div className="flex items-center justify-between mt-1">
           <p className="text-[10px] text-zinc-600 font-mono truncate flex-1">
@@ -105,13 +111,22 @@ function NodeCardComponent({ node, className }: NodeCardProps) {
           </div>
           <div>
             <p className="text-[10px] text-zinc-500 font-medium">Workers</p>
-            <p className="text-sm font-heading font-bold text-cyan-400 tabular-nums">
+            <p className="text-sm font-heading font-bold text-[var(--sys-accent)] tabular-nums">
               {node.workers.active}/{node.workers.total}
             </p>
           </div>
           <div>
             <p className="text-[10px] text-zinc-500 font-medium">P99</p>
-            <p className="text-sm font-heading font-bold text-amber-400 tabular-nums">
+            <p
+              className={twMerge(
+                "text-sm font-heading font-bold tabular-nums",
+                node.latency.p99 > 1000
+                  ? "text-[var(--sys-danger)]"
+                  : node.latency.p99 > 200
+                    ? "text-[var(--sys-warn)]"
+                    : "text-[var(--sys-success)]",
+              )}
+            >
               {formatLatency(node.latency.p99)}
             </p>
           </div>
@@ -121,10 +136,10 @@ function NodeCardComponent({ node, className }: NodeCardProps) {
               className={twMerge(
                 "text-sm font-heading font-bold tabular-nums",
                 avgSignal > 80
-                  ? "text-red-400"
+                  ? "text-[var(--sys-danger)]"
                   : avgSignal > 50
-                    ? "text-amber-400"
-                    : "text-cyan-400",
+                    ? "text-[var(--sys-warn)]"
+                    : "text-[var(--sys-success)]",
               )}
             >
               {avgSignal.toFixed(0)}%

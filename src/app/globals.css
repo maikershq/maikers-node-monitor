@@ -1,9 +1,15 @@
 @import "tailwindcss";
 
 :root {
-  --background: #111111;
+  --background: #050505;
   --foreground: #ffffff;
-  --card-background: #181818;
+  --card-background: #0a0a0c;
+  --sys-cell: #18181b;
+  --sys-accent: #6366f1;
+  --sys-success: #10b981;
+  --sys-warn: #f59e0b;
+  --sys-danger: #ef4444;
+  --sys-tee: #8b5cf6;
   color-scheme: dark;
 }
 
@@ -83,7 +89,38 @@ button:not(:disabled) {
     opacity: 1;
   }
   50% {
-    opacity: 0.5;
+    opacity: 0.4;
+  }
+}
+
+@keyframes glow {
+  0%,
+  100% {
+    box-shadow: 0 0 4px currentColor;
+  }
+  50% {
+    box-shadow: 0 0 12px currentColor;
+  }
+}
+
+@keyframes backpressure {
+  0%,
+  100% {
+    border-color: rgba(239, 68, 68, 0.3);
+  }
+  50% {
+    border-color: rgba(239, 68, 68, 0.8);
+  }
+}
+
+@keyframes gossip-pulse {
+  0% {
+    transform: scale(0.8);
+    opacity: 0.6;
+  }
+  100% {
+    transform: scale(2);
+    opacity: 0;
   }
 }
 
@@ -91,17 +128,55 @@ button:not(:disabled) {
   animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
+.animate-glow {
+  animation: glow 1.5s ease-in-out infinite;
+}
+
+.animate-backpressure {
+  animation: backpressure 0.5s ease-in-out infinite;
+}
+
+.animate-gossip {
+  animation: gossip-pulse 1s ease-out infinite;
+}
+
 .tabular-nums {
   font-variant-numeric: tabular-nums;
 }
 
 .monitor-card {
-  background: rgba(24, 24, 24, 0.5);
+  background: rgba(10, 10, 12, 0.8);
   backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .monitor-card:hover {
-  border-color: rgba(6, 182, 212, 0.3);
-  box-shadow: 0 8px 32px rgba(6, 182, 212, 0.1);
+  border-color: rgba(99, 102, 241, 0.4);
+  box-shadow: 0 8px 32px rgba(99, 102, 241, 0.1);
+}
+
+/* Cell fabric styling */
+.cell-shard {
+  transition: all 0.2s ease;
+}
+
+.cell-shard:hover {
+  transform: scale(1.15);
+  z-index: 10;
+}
+
+/* Task dot colors */
+.dot-quick {
+  background-color: var(--sys-success);
+  box-shadow: 0 0 3px var(--sys-success);
+}
+
+.dot-medium {
+  background-color: var(--sys-warn);
+  box-shadow: 0 0 3px var(--sys-warn);
+}
+
+.dot-heavy {
+  background-color: var(--sys-danger);
+  box-shadow: 0 0 3px var(--sys-danger);
 }
