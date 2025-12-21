@@ -18,7 +18,13 @@ function getNodeState(node: NodeMetrics): NodeState {
   if (node.status === "offline") return "offline";
   if (node.status === "degraded") return "error";
   if (node.workers.active === 0) return "not_synced";
-  if (node.workers.active > node.workers.total * 0.8) return "busy";
+
+  // A node is busy if it has claimed events or pending tasks
+  const hasWork =
+    node.claimedEvents > 0 ||
+    node.cells.some((c) => (c.pendingEvents || 0) > 0);
+
+  if (hasWork && node.workers.active > node.workers.total * 0.8) return "busy";
   return "active";
 }
 
