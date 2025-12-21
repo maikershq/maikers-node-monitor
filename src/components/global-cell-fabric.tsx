@@ -44,9 +44,9 @@ export function GlobalCellFabric({ nodes, className }: GlobalCellFabricProps) {
           });
           // Only count online nodes for replication and metrics
           if (isOnline) {
-            global.totalSignal += cell.signal;
-            global.totalQueueDepth += cell.queueDepth;
-            global.replicationCount++;
+          global.totalSignal += cell.signal;
+          global.totalQueueDepth += cell.queueDepth;
+          global.replicationCount++;
           }
         }
       });
@@ -177,13 +177,13 @@ export function GlobalCellFabric({ nodes, className }: GlobalCellFabricProps) {
                                 : "bg-[var(--sys-warn)]";
 
                         return (
-                          <div
-                            key={i}
-                            className={twMerge(
-                              "w-1.5 h-1.5 rounded-full",
+                        <div
+                          key={i}
+                          className={twMerge(
+                            "w-1.5 h-1.5 rounded-full",
                               isFilled ? replicationColor : "bg-zinc-700",
-                            )}
-                          />
+                          )}
+                        />
                         );
                       },
                     )}
@@ -220,7 +220,7 @@ export function GlobalCellFabric({ nodes, className }: GlobalCellFabricProps) {
             <div className="flex items-center gap-1">
               <span className="w-2 h-2 rounded-sm border border-[#ef4444] bg-zinc-900" />
               <span>Hot</span>
-            </div>
+              </div>
             <div className="flex items-center gap-1">
               <span className="w-2 h-2 rounded-sm border border-[#f97316] bg-zinc-900" />
               <span>High</span>

@@ -197,12 +197,12 @@ function NodeCardComponent({ node, className }: NodeCardProps) {
               <ExternalLink className="w-2.5 h-2.5 flex-shrink-0" />
             </a>
           ) : (
-            <p
-              className="text-[10px] text-zinc-600 font-mono truncate flex-1 cursor-default"
-              title={node.peerId}
-            >
-              {node.peerId}
-            </p>
+          <p
+            className="text-[10px] text-zinc-600 font-mono truncate flex-1 cursor-default"
+            title={node.peerId}
+          >
+            {node.peerId}
+          </p>
           )}
           {node.packetLoss > 0 && node.status !== "offline" && (
             <span className="text-[9px] text-red-400 ml-2 whitespace-nowrap">
