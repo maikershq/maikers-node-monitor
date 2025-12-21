@@ -164,38 +164,27 @@ export function ClusterStatus({ nodes, className }: ClusterStatusProps) {
 
         {/* Replication Status */}
         <div className="mt-auto pt-2 border-t border-zinc-800/50 flex-none">
-          <div className="flex items-center justify-between gap-1 text-center text-[9px]">
-            <div className="flex flex-col items-center px-1">
-              <div className="text-zinc-500">Healthy</div>
-              <div className="text-[var(--sys-success)] font-mono font-bold text-xs">
+          <div className="flex items-center justify-between text-[9px] text-zinc-500">
+            <div className="flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-[var(--sys-success)] shrink-0" />
+              <span className="text-zinc-200 font-mono font-bold">
                 {stats.healthyCells}
-              </div>
+              </span>
+              <span>healthy</span>
             </div>
-            <div className="flex flex-col items-center px-1">
-              <div className="text-zinc-500">Degraded</div>
-              <div
-                className={twMerge(
-                  "font-mono font-bold text-xs",
-                  stats.degradedCells > 0
-                    ? "text-[var(--sys-warn)]"
-                    : "text-zinc-600",
-                )}
-              >
+            <div className="flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-[var(--sys-warn)] shrink-0" />
+              <span className="text-zinc-200 font-mono font-bold">
                 {stats.degradedCells}
-              </div>
+              </span>
+              <span>degraded</span>
             </div>
-            <div className="flex flex-col items-center px-1">
-              <div className="text-zinc-500">Empty</div>
-              <div
-                className={twMerge(
-                  "font-mono font-bold text-xs",
-                  stats.emptyCells > 0
-                    ? "text-[var(--sys-danger)]"
-                    : "text-zinc-600",
-                )}
-              >
+            <div className="flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-[var(--sys-danger)] shrink-0" />
+              <span className="text-zinc-200 font-mono font-bold">
                 {stats.emptyCells}
-              </div>
+              </span>
+              <span>empty</span>
             </div>
           </div>
         </div>
