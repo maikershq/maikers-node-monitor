@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState, useRef, useEffect } from "react";
 import { twMerge } from "tailwind-merge";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import type { NodeMetrics, GlobalCell } from "@/lib/types";
@@ -13,6 +13,10 @@ interface GlobalCellFabricProps {
 }
 
 export function GlobalCellFabric({ nodes, className }: GlobalCellFabricProps) {
+  const [hoveredCell, setHoveredCell] = useState<GlobalCell | null>(null);
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+  const containerRef = useRef<HTMLDivElement>(null);
+
   // Aggregate cells from all nodes into global view
   const globalCells = useMemo<GlobalCell[]>(() => {
     const cellMap = new Map<number, GlobalCell>();
@@ -91,10 +95,20 @@ export function GlobalCellFabric({ nodes, className }: GlobalCellFabricProps) {
     return "#3f3f46"; // zinc-700 - normal
   };
 
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (containerRef.current) {
+      const rect = containerRef.current.getBoundingClientRect();
+      setMousePos({
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top,
+      });
+    }
+  };
+
   const cols = 8; // 8x8 grid for 64 cells
 
   return (
-    <Card className={twMerge("monitor-card h-full flex flex-col", className)}>
+    <Card className={twMerge("monitor-card h-full flex flex-col relative", className)}>
       <CardHeader className="pb-2 pt-3 flex-none">
         <CardTitle className="flex items-center justify-between text-sm font-medium">
           <div className="flex items-center gap-2">
@@ -125,8 +139,12 @@ export function GlobalCellFabric({ nodes, className }: GlobalCellFabricProps) {
           </div>
         </CardTitle>
       </CardHeader>
-      <CardContent className="pt-0 pb-3 flex-1 flex flex-col min-h-0">
-        <div className="flex-1 min-h-0 flex items-center justify-center">
+      <CardContent className="pt-0 pb-3 flex-1 flex flex-col min-h-0 relative">
+        <div 
+          ref={containerRef}
+          className="flex-1 min-h-0 flex items-center justify-center relative"
+          onMouseMove={handleMouseMove}
+        >
           <div
             className={twMerge(
               "grid gap-1 rounded overflow-hidden p-1 w-full h-full",
@@ -147,9 +165,12 @@ export function GlobalCellFabric({ nodes, className }: GlobalCellFabricProps) {
               return (
                 <div
                   key={cell.id}
+                  onMouseEnter={() => setHoveredCell(cell)}
+                  onMouseLeave={() => setHoveredCell(null)}
                   className={twMerge(
                     "relative cursor-crosshair transition-all rounded aspect-square border",
                     isHighLoad && "animate-pulse",
+                    hoveredCell?.id === cell.id && "z-10 ring-1 ring-white/30"
                   )}
                   style={{
                     backgroundColor: isEmpty
@@ -157,7 +178,6 @@ export function GlobalCellFabric({ nodes, className }: GlobalCellFabricProps) {
                       : `hsla(${hue}, 60%, 50%, ${alpha})`,
                     borderColor,
                   }}
-                  title={`Cell ${cell.id} • RF: ${cell.replicationCount}/${DEFAULT_REPLICATION_FACTOR} • Signal: ${Math.round(cell.totalSignal)}% • Queue: ${cell.totalQueueDepth}`}
                 >
                   {/* Replication indicator dots */}
                   <div className="absolute bottom-0.5 left-0.5 flex gap-px">
@@ -190,6 +210,37 @@ export function GlobalCellFabric({ nodes, className }: GlobalCellFabricProps) {
               );
             })}
           </div>
+
+          {/* Custom Tooltip */}
+          {hoveredCell && (
+            <div 
+              className="absolute z-50 pointer-events-none bg-zinc-900/95 border border-zinc-800 rounded px-2 py-1.5 shadow-2xl backdrop-blur-md min-w-[120px]"
+              style={{
+                left: `${mousePos.x + 12}px`,
+                top: `${mousePos.y + 12}px`,
+              }}
+            >
+              <div className="flex flex-col gap-1">
+                <div className="flex items-center justify-between border-b border-zinc-800 pb-1 mb-1">
+                  <span className="text-[10px] font-mono text-zinc-400">Shard #{hoveredCell.id.toString().padStart(2, '0')}</span>
+                  <span className={twMerge(
+                    "text-[8px] px-1 rounded",
+                    hoveredCell.healthy ? "bg-emerald-500/20 text-emerald-400" : "bg-amber-500/20 text-amber-400"
+                  )}>
+                    {hoveredCell.healthy ? "HEALTHY" : "DEGRADED"}
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 gap-x-3 gap-y-0.5">
+                  <span className="text-[9px] text-zinc-500">Replication</span>
+                  <span className="text-[9px] text-zinc-200 font-mono text-right">{hoveredCell.replicationCount}/{DEFAULT_REPLICATION_FACTOR}</span>
+                  <span className="text-[9px] text-zinc-500">Signal</span>
+                  <span className="text-[9px] text-zinc-200 font-mono text-right">{Math.round(hoveredCell.totalSignal)}%</span>
+                  <span className="text-[9px] text-zinc-500">Queue</span>
+                  <span className="text-[9px] text-zinc-200 font-mono text-right">{hoveredCell.totalQueueDepth}</span>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Legend */}
