@@ -139,17 +139,25 @@ export function GlobalCellFabric({ nodes, className }: GlobalCellFabricProps) {
                   {/* Replication indicator dots */}
                   <div className="absolute bottom-0.5 left-0.5 flex gap-px">
                     {Array.from({ length: DEFAULT_REPLICATION_FACTOR }).map(
-                      (_, i) => (
-                        <div
-                          key={i}
-                          className={twMerge(
-                            "w-1.5 h-1.5 rounded-full",
-                            i < cell.replicationCount
-                              ? "bg-[var(--sys-success)]"
-                              : "bg-zinc-700",
-                          )}
-                        />
-                      ),
+                      (_, i) => {
+                        const isFilled = i < cell.replicationCount;
+                        const replicationColor =
+                          cell.replicationCount >= DEFAULT_REPLICATION_FACTOR
+                            ? "bg-[var(--sys-success)]"
+                            : cell.replicationCount >= 2
+                              ? "bg-[var(--sys-warn)]"
+                              : "bg-[var(--sys-danger)]";
+
+                        return (
+                          <div
+                            key={i}
+                            className={twMerge(
+                              "w-1.5 h-1.5 rounded-full",
+                              isFilled ? replicationColor : "bg-zinc-700",
+                            )}
+                          />
+                        );
+                      },
                     )}
                   </div>
 
@@ -178,16 +186,16 @@ export function GlobalCellFabric({ nodes, className }: GlobalCellFabricProps) {
         <div className="flex items-center justify-between mt-2 text-[9px] text-zinc-600 flex-none">
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-1">
-              <div className="flex gap-px">
-                <span className="w-1 h-1 rounded-full bg-[var(--sys-success)]" />
-                <span className="w-1 h-1 rounded-full bg-[var(--sys-success)]" />
-                <span className="w-1 h-1 rounded-full bg-[var(--sys-success)]" />
-              </div>
-              <span>RF={DEFAULT_REPLICATION_FACTOR}</span>
+              <span className="w-1.5 h-1.5 rounded-full bg-[var(--sys-success)]" />
+              <span>Healthy</span>
             </div>
             <div className="flex items-center gap-1">
-              <span className="w-2 h-2 rounded-sm ring-1 ring-[var(--sys-warn)]/50 bg-zinc-800" />
+              <span className="w-1.5 h-1.5 rounded-full bg-[var(--sys-warn)]" />
               <span>Degraded</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-[var(--sys-danger)]" />
+              <span>Critical</span>
             </div>
           </div>
           <span className="font-mono">{TOTAL_CELLS} shards</span>
