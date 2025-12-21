@@ -3,7 +3,8 @@ export type NodeStatus = "healthy" | "degraded" | "offline";
 export interface NodeMetrics {
   nodeId: string;
   peerId: string;
-  teePlatform: "IntelTdx" | "AmdSevSnp" | "Simulated";
+  secure: boolean;
+  teePlatform: "IntelTDX" | "AmdSEV" | null;
   teeAttested: boolean;
   uptime: number;
   cells: CellMetrics[];
@@ -46,6 +47,7 @@ export interface NetworkStats {
   avgLatencyP99: number;
   totalCells: number;
   attestedNodes: number;
+  secureNodes: number;
 }
 
 export interface TimeSeriesPoint {

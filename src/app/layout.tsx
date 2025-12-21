@@ -15,8 +15,8 @@ const body = Open_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "Cellular Stigmergy Monitor",
-  description: "Real-time monitoring for Maikers Cellular Stigmergy Network",
+  title: "maikers nodes",
+  description: "Real-time monitoring for maikers nodes",
 };
 
 export default function RootLayout({

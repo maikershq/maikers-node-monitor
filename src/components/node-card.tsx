@@ -64,14 +64,21 @@ function NodeCardComponent({ node, className }: NodeCardProps) {
             )}
           </CardTitle>
           <div className="flex items-center gap-1.5">
-            {node.teeAttested ? (
-              <ShieldCheck className="w-4 h-4 text-cyan-400" />
+            {node.secure ? (
+              <>
+                <ShieldCheck className="w-4 h-4 text-cyan-400" />
+                <span className="text-[10px] text-cyan-400 font-medium">
+                  {node.teePlatform}
+                </span>
+              </>
             ) : (
-              <Shield className="w-4 h-4 text-amber-400" />
+              <>
+                <Shield className="w-4 h-4 text-zinc-500" />
+                <span className="text-[10px] text-zinc-500 font-medium">
+                  Insecure
+                </span>
+              </>
             )}
-            <span className="text-[10px] text-zinc-500 font-medium">
-              {node.teePlatform}
-            </span>
           </div>
         </div>
         <div className="flex items-center justify-between mt-1">

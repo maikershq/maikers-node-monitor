@@ -224,8 +224,8 @@ export class NodeDiscovery {
     return {
       nodeId: (raw.nodeId as string) || `node-${endpoint.split(":").pop()}`,
       peerId: (raw.peerId as string) || "unknown",
-      teePlatform:
-        (raw.teePlatform as NodeMetrics["teePlatform"]) || "Simulated",
+      secure: (raw.secure as boolean) ?? false,
+      teePlatform: (raw.teePlatform as NodeMetrics["teePlatform"]) ?? null,
       teeAttested: (raw.teeAttested as boolean) || false,
       uptime: (raw.uptime as number) || 0,
       cells: (raw.cells as NodeMetrics["cells"]) || [],
@@ -247,7 +247,7 @@ export class NodeDiscovery {
       fuelConsumed: (raw.fuelConsumed as number) || 0,
       peers: (raw.peers as string[]) || [],
       lastUpdate: Date.now(),
-      status: "healthy", // Default status
+      status: "healthy",
       packetLoss: 0,
     };
   }

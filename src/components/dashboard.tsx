@@ -47,6 +47,7 @@ export function Dashboard() {
         avgLatencyP99: 0,
         totalCells: 0,
         attestedNodes: 0,
+        secureNodes: 0,
       };
 
     const healthyNodes = nodes.filter((n) => n.status !== "offline");
@@ -57,6 +58,7 @@ export function Dashboard() {
           healthyNodes.length
         : 0;
     const attestedNodes = nodes.filter((n) => n.teeAttested).length;
+    const secureNodes = nodes.filter((n) => n.secure).length;
     const totalCells = nodes.reduce((s, n) => s + n.cells.length, 0);
 
     return {
@@ -66,6 +68,7 @@ export function Dashboard() {
       avgLatencyP99,
       totalCells,
       attestedNodes,
+      secureNodes,
     };
   }, [nodes]);
 
@@ -84,7 +87,7 @@ export function Dashboard() {
           />
           <div>
             <h1 className="text-xl md:text-2xl font-heading font-bold">
-              Cellular Stigmergy Monitor
+              maikers nodes
             </h1>
             <p className="text-xs text-zinc-500">
               Live network discovery
@@ -170,8 +173,9 @@ export function Dashboard() {
               icon={<Cpu className="w-5 h-5" />}
             />
             <MetricCard
-              label="TEE Attested"
-              value={`${Math.round((stats.attestedNodes / stats.totalNodes) * 100 || 0)}%`}
+              label="Secure"
+              value={`${stats.secureNodes}/${stats.totalNodes}`}
+              subValue={stats.secureNodes > 0 ? "TEE protected" : "insecure"}
               icon={<ShieldCheck className="w-5 h-5" />}
             />
             <MetricCard
