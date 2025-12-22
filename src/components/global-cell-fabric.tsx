@@ -95,6 +95,8 @@ export function GlobalCellFabric({ nodes, className }: GlobalCellFabricProps) {
     return "#3f3f46"; // zinc-700 - normal
   };
 
+  const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
+
   const handleMouseMove = (e: React.MouseEvent) => {
     if (containerRef.current) {
       const rect = containerRef.current.getBoundingClientRect();
@@ -102,8 +104,13 @@ export function GlobalCellFabric({ nodes, className }: GlobalCellFabricProps) {
         x: e.clientX - rect.left,
         y: e.clientY - rect.top,
       });
+      setContainerSize({ width: rect.width, height: rect.height });
     }
   };
+
+  const tooltipWidth = 140;
+  const isNearRight = mousePos.x > containerSize.width - tooltipWidth - 20;
+  const isNearBottom = mousePos.y > containerSize.height - 100;
 
   const cols = 8; // 8x8 grid for 64 cells
 
@@ -215,8 +222,8 @@ export function GlobalCellFabric({ nodes, className }: GlobalCellFabricProps) {
             <div 
               className="absolute z-50 pointer-events-none bg-zinc-900/95 border border-zinc-800 rounded px-2 py-1.5 shadow-2xl backdrop-blur-md min-w-[120px]"
               style={{
-                left: `${mousePos.x + 12}px`,
-                top: `${mousePos.y + 12}px`,
+                left: isNearRight ? `${mousePos.x - tooltipWidth - 12}px` : `${mousePos.x + 12}px`,
+                top: isNearBottom ? `${mousePos.y - 100}px` : `${mousePos.y + 12}px`,
               }}
             >
               <div className="flex flex-col gap-1">
