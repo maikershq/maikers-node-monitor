@@ -14,6 +14,7 @@ import {
   RotateCcw,
   Trash2,
   Radio,
+  EyeOff,
 } from "lucide-react";
 
 interface SettingsPanelProps {
@@ -174,6 +175,43 @@ export function SettingsPanel({
         <p className="text-[10px] text-zinc-600 mt-1.5">
           How often to check registry for new nodes
         </p>
+      </section>
+
+      {/* Display Options */}
+      <section>
+        <div className="flex items-center gap-2 mb-3">
+          <EyeOff className="w-3.5 h-3.5 text-zinc-400" />
+          <span className="text-xs text-zinc-400 font-medium uppercase tracking-wide">
+            Display
+          </span>
+        </div>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() =>
+              onSettingsChange({ hideOfflineNodes: !settings.hideOfflineNodes })
+            }
+            className={twMerge(
+              "flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-all text-xs",
+              settings.hideOfflineNodes
+                ? "bg-zinc-800 border-zinc-700 text-zinc-200"
+                : "bg-zinc-900/50 border-zinc-800/50 text-zinc-500 hover:bg-zinc-800/50",
+            )}
+          >
+            <div
+              className={twMerge(
+                "w-3.5 h-3.5 rounded-md border flex items-center justify-center transition-colors",
+                settings.hideOfflineNodes
+                  ? "bg-[var(--sys-accent)] border-[var(--sys-accent)]"
+                  : "border-zinc-700",
+              )}
+            >
+              {settings.hideOfflineNodes && (
+                <div className="w-1.5 h-1.5 bg-white rounded-full" />
+              )}
+            </div>
+            Hide offline nodes
+          </button>
+        </div>
       </section>
 
       {/* Node Endpoints */}

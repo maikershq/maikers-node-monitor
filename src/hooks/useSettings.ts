@@ -6,6 +6,7 @@ export interface MonitorSettings {
   registryUrl: string;
   refreshRateMs: number;
   registryScanIntervalMs: number;
+  hideOfflineNodes: boolean;
 }
 
 const STORAGE_KEY = "maikers-monitor-settings";
@@ -15,6 +16,7 @@ const DEFAULT_SETTINGS: MonitorSettings = {
     process.env.NEXT_PUBLIC_REGISTRY_URL || "https://registry.maikers.com",
   refreshRateMs: 5000,
   registryScanIntervalMs: 60000,
+  hideOfflineNodes: false,
 };
 
 export function useSettings() {

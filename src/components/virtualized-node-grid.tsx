@@ -3,7 +3,8 @@
 import { useRef, useState, useEffect, useCallback, useMemo } from "react";
 import { NodeCard } from "./node-card";
 import type { NodeMetrics } from "@/lib/types";
-import { ArrowUpDown, ArrowUp, ArrowDown, Server } from "lucide-react";
+import { ArrowUpDown, ArrowUp, ArrowDown, Server, EyeOff } from "lucide-react";
+import { useSettings } from "@/hooks/useSettings";
 
 interface VirtualizedNodeGridProps {
   nodes: NodeMetrics[];
@@ -25,11 +26,17 @@ export function VirtualizedNodeGrid({
   cardHeight = 280,
   gap = 16,
 }: VirtualizedNodeGridProps) {
+  const { settings, updateSettings } = useSettings();
   const containerRef = useRef<HTMLDivElement>(null);
   const [visibleRange, setVisibleRange] = useState({ start: 0, end: 20 });
   const [columns, setColumns] = useState(3);
   const [sortField, setSortField] = useState<SortField>("nodeId");
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
+
+  const filteredNodes = useMemo(() => {
+    if (!settings.hideOfflineNodes) return nodes;
+    return nodes.filter((node) => node.status !== "offline");
+  }, [nodes, settings.hideOfflineNodes]);
 
   const updateColumns = useCallback(() => {
     if (!containerRef.current) return;
@@ -49,7 +56,7 @@ export function VirtualizedNodeGrid({
   }, [updateColumns]);
 
   const sortedNodes = useMemo(() => {
-    return [...nodes].sort((a, b) => {
+    return [...filteredNodes].sort((a, b) => {
       let valA: any;
       let valB: any;
 
@@ -88,7 +95,7 @@ export function VirtualizedNodeGrid({
       if (valA > valB) return sortDirection === "asc" ? 1 : -1;
       return 0;
     });
-  }, [nodes, sortField, sortDirection]);
+  }, [filteredNodes, sortField, sortDirection]);
 
   const rowHeight = cardHeight + gap;
   const totalRows = Math.ceil(sortedNodes.length / columns);
@@ -181,7 +188,23 @@ export function VirtualizedNodeGrid({
         </h2>
 
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-xs text-zinc-500 mr-1">Sort by:</span>
+          <button
+            onClick={() =>
+              updateSettings({ hideOfflineNodes: !settings.hideOfflineNodes })
+            }
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-medium transition-colors mr-2 ${
+              settings.hideOfflineNodes
+                ? "bg-zinc-800 text-zinc-200 border border-zinc-700"
+                : "bg-zinc-900/50 text-zinc-500 hover:bg-zinc-800 hover:text-zinc-300 border border-transparent"
+            }`}
+          >
+            <EyeOff
+              className={`w-3.5 h-3.5 ${settings.hideOfflineNodes ? "text-cyan-400" : ""}`}
+            />
+            {settings.hideOfflineNodes ? "Online Only" : "Hide Offline"}
+          </button>
+          <div className="h-4 w-[1px] bg-zinc-800/50 mx-1 hidden md:block" />
+          <span className="text-xs text-zinc-500 mr-1 ml-1">Sort by:</span>
           <SortButton field="nodeId" label="Name" />
           <SortButton field="status" label="Status" />
           <SortButton field="throughput" label="Throughput" />
