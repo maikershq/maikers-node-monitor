@@ -70,6 +70,8 @@ export interface NetworkStats {
   replicationFactor: number;
   healthyCells: number; // Cells with full RF
   degradedCells: number; // Cells with < RF replicas
+  loadedCells: number; // Cells with at least 1 replica
+  minReplication: number; // Minimum RF across all cells (0-3+)
 }
 
 export interface TimeSeriesPoint {

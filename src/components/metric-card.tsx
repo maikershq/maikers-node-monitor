@@ -8,6 +8,7 @@ interface MetricCardProps {
   value: string | number;
   subValue?: string;
   trend?: "up" | "down" | "neutral";
+  valueColor?: string;
   icon?: React.ReactNode;
   className?: string;
 }
@@ -17,6 +18,7 @@ export function MetricCard({
   value,
   subValue,
   trend,
+  valueColor,
   icon,
   className,
 }: MetricCardProps) {
@@ -31,14 +33,18 @@ export function MetricCard({
               {label}
             </p>
             <p
-              className={twMerge(
-                "text-xl font-heading font-bold mt-0.5 tabular-nums truncate",
-                trend === "up" && "text-[var(--sys-success)]",
-                trend === "down" && "text-[var(--sys-danger)]",
-                !trend && "text-white",
-              )}
+              className="text-xl font-heading font-bold mt-0.5 tabular-nums truncate"
+              style={valueColor ? { color: valueColor } : undefined}
             >
-              {value}
+              <span
+                className={twMerge(
+                  !valueColor && trend === "up" && "text-[var(--sys-success)]",
+                  !valueColor && trend === "down" && "text-[var(--sys-danger)]",
+                  !valueColor && !trend && "text-white",
+                )}
+              >
+                {value}
+              </span>
             </p>
             {subValue && (
               <p className="text-[10px] text-zinc-600 mt-0.5">{subValue}</p>

@@ -69,6 +69,8 @@ export function Dashboard() {
         replicationFactor: DEFAULT_REPLICATION_FACTOR,
         healthyCells: 0,
         degradedCells: 0,
+        loadedCells: 0,
+        minReplication: 0,
       };
 
     const healthyNodes = nodes.filter((n) => n.status !== "offline");
@@ -83,6 +85,9 @@ export function Dashboard() {
 
     // Calculate cell coverage for replication health
     const cellCoverage = new Map<number, number>();
+    for (let i = 0; i < TOTAL_CELLS; i++) {
+      cellCoverage.set(i, 0);
+    }
     healthyNodes.forEach((node) => {
       node.cells.forEach((cell) => {
         const current = cellCoverage.get(cell.id) || 0;
@@ -90,12 +95,15 @@ export function Dashboard() {
       });
     });
 
-    const healthyCells = Array.from(cellCoverage.values()).filter(
+    const coverageValues = Array.from(cellCoverage.values());
+    const healthyCells = coverageValues.filter(
       (count) => count >= DEFAULT_REPLICATION_FACTOR,
     ).length;
-    const degradedCells = Array.from(cellCoverage.values()).filter(
+    const degradedCells = coverageValues.filter(
       (count) => count > 0 && count < DEFAULT_REPLICATION_FACTOR,
     ).length;
+    const loadedCells = coverageValues.filter((count) => count > 0).length;
+    const minReplication = Math.min(...coverageValues);
 
     return {
       totalNodes: nodes.length,
@@ -108,8 +116,17 @@ export function Dashboard() {
       replicationFactor: DEFAULT_REPLICATION_FACTOR,
       healthyCells,
       degradedCells,
+      loadedCells,
+      minReplication,
     };
   }, [nodes]);
+
+  const getCellsColor = (minRF: number): string => {
+    if (minRF === 0) return "#71717a"; // zinc-500 (gray)
+    if (minRF === 1) return "var(--sys-danger)"; // red
+    if (minRF === 2) return "var(--sys-warn)"; // orange
+    return "var(--sys-success)"; // green (3+)
+  };
 
   return (
     <div className="min-h-screen bg-[var(--background)] bg-pattern text-white p-4 md:p-6">
@@ -216,9 +233,9 @@ export function Dashboard() {
             />
             <MetricCard
               label="Cells"
-              value={`${stats.healthyCells}/${stats.totalCells}`}
+              value={`${stats.loadedCells}/${stats.totalCells}`}
               subValue={`RF=${stats.replicationFactor}`}
-              trend={stats.degradedCells === 0 ? "up" : "down"}
+              valueColor={getCellsColor(stats.minReplication)}
               icon={<Cpu className="w-4 h-4" />}
             />
             <MetricCard
