@@ -142,11 +142,11 @@ export function GlobalCellFabric({ nodes, className }: GlobalCellFabricProps) {
       <CardContent className="pt-0 pb-3 flex-1 flex flex-col min-h-0 relative overflow-hidden">
         <div 
           ref={containerRef}
-          className="flex-1 min-h-0 flex items-center justify-center relative overflow-auto"
+          className="flex-1 min-h-0 min-w-0 relative"
           onMouseMove={handleMouseMove}
         >
           <div
-            className="grid gap-1 rounded p-1 w-full max-w-full aspect-square"
+            className="grid gap-1 rounded p-1 absolute inset-0"
             style={{
               gridTemplateColumns: `repeat(${cols}, 1fr)`,
               gridTemplateRows: `repeat(${cols}, 1fr)`,
