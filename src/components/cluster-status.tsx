@@ -112,7 +112,12 @@ export function ClusterStatus({ nodes, className }: ClusterStatusProps) {
   ];
 
   return (
-    <Card className={twMerge("monitor-card h-full flex flex-col overflow-hidden", className)}>
+    <Card
+      className={twMerge(
+        "monitor-card h-full flex flex-col overflow-hidden",
+        className,
+      )}
+    >
       <CardHeader className="pb-2 pt-3 flex-none">
         <CardTitle className="flex items-center justify-between text-sm font-medium">
           <div className="flex items-center gap-2">

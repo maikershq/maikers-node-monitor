@@ -49,14 +49,14 @@ export function NodePool({ nodes, className }: NodePoolProps) {
   const nodeData = useMemo(() => {
     return nodes
       .map((node) => ({
-      id: node.nodeId,
-      state: getNodeState(node),
-      workers: node.workers,
-      secure: node.secure,
-      cellCount: node.cells.length,
-      ownedCells: node.ownedCells || node.cells.map((c) => c.id),
-      claimedEvents: node.claimedEvents || 0,
-      throughput: node.throughput,
+        id: node.nodeId,
+        state: getNodeState(node),
+        workers: node.workers,
+        secure: node.secure,
+        cellCount: node.cells.length,
+        ownedCells: node.ownedCells || node.cells.map((c) => c.id),
+        claimedEvents: node.claimedEvents || 0,
+        throughput: node.throughput,
       }))
       .sort((a, b) => {
         if (a.state === "offline" && b.state !== "offline") return 1;

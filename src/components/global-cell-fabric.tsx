@@ -115,7 +115,12 @@ export function GlobalCellFabric({ nodes, className }: GlobalCellFabricProps) {
   const cols = 8; // 8x8 grid for 64 cells
 
   return (
-    <Card className={twMerge("monitor-card h-full flex flex-col relative", className)}>
+    <Card
+      className={twMerge(
+        "monitor-card h-full flex flex-col relative",
+        className,
+      )}
+    >
       <CardHeader className="pb-2 pt-3 flex-none">
         <CardTitle className="flex items-center justify-between text-sm font-medium">
           <div className="flex items-center gap-2">
@@ -147,7 +152,7 @@ export function GlobalCellFabric({ nodes, className }: GlobalCellFabricProps) {
         </CardTitle>
       </CardHeader>
       <CardContent className="pt-0 pb-3 flex-1 flex flex-col min-h-0 relative overflow-hidden">
-        <div 
+        <div
           ref={containerRef}
           className="flex-1 min-h-0 min-w-0 relative"
           onMouseMove={handleMouseMove}
@@ -176,7 +181,7 @@ export function GlobalCellFabric({ nodes, className }: GlobalCellFabricProps) {
                   className={twMerge(
                     "relative cursor-crosshair transition-all rounded border",
                     isHighLoad && "animate-pulse",
-                    hoveredCell?.id === cell.id && "z-10 ring-1 ring-white/30"
+                    hoveredCell?.id === cell.id && "z-10 ring-1 ring-white/30",
                   )}
                   style={{
                     backgroundColor: isEmpty
@@ -219,30 +224,46 @@ export function GlobalCellFabric({ nodes, className }: GlobalCellFabricProps) {
 
           {/* Custom Tooltip */}
           {hoveredCell && (
-            <div 
+            <div
               className="absolute z-50 pointer-events-none bg-zinc-900/95 border border-zinc-800 rounded px-2 py-1.5 shadow-2xl backdrop-blur-md min-w-[120px]"
               style={{
-                left: isNearRight ? `${mousePos.x - tooltipWidth - 12}px` : `${mousePos.x + 12}px`,
-                top: isNearBottom ? `${mousePos.y - 100}px` : `${mousePos.y + 12}px`,
+                left: isNearRight
+                  ? `${mousePos.x - tooltipWidth - 12}px`
+                  : `${mousePos.x + 12}px`,
+                top: isNearBottom
+                  ? `${mousePos.y - 100}px`
+                  : `${mousePos.y + 12}px`,
               }}
             >
               <div className="flex flex-col gap-1">
                 <div className="flex items-center justify-between border-b border-zinc-800 pb-1 mb-1">
-                  <span className="text-[10px] font-mono text-zinc-400">Shard #{hoveredCell.id.toString().padStart(2, '0')}</span>
-                  <span className={twMerge(
-                    "text-[8px] px-1 rounded",
-                    hoveredCell.healthy ? "bg-emerald-500/20 text-emerald-400" : "bg-amber-500/20 text-amber-400"
-                  )}>
+                  <span className="text-[10px] font-mono text-zinc-400">
+                    Shard #{hoveredCell.id.toString().padStart(2, "0")}
+                  </span>
+                  <span
+                    className={twMerge(
+                      "text-[8px] px-1 rounded",
+                      hoveredCell.healthy
+                        ? "bg-emerald-500/20 text-emerald-400"
+                        : "bg-amber-500/20 text-amber-400",
+                    )}
+                  >
                     {hoveredCell.healthy ? "HEALTHY" : "DEGRADED"}
                   </span>
                 </div>
                 <div className="grid grid-cols-2 gap-x-3 gap-y-0.5">
                   <span className="text-[9px] text-zinc-500">Replication</span>
-                  <span className="text-[9px] text-zinc-200 font-mono text-right">{hoveredCell.replicationCount}/{DEFAULT_REPLICATION_FACTOR}</span>
+                  <span className="text-[9px] text-zinc-200 font-mono text-right">
+                    {hoveredCell.replicationCount}/{DEFAULT_REPLICATION_FACTOR}
+                  </span>
                   <span className="text-[9px] text-zinc-500">Signal</span>
-                  <span className="text-[9px] text-zinc-200 font-mono text-right">{Math.round(hoveredCell.totalSignal)}%</span>
+                  <span className="text-[9px] text-zinc-200 font-mono text-right">
+                    {Math.round(hoveredCell.totalSignal)}%
+                  </span>
                   <span className="text-[9px] text-zinc-500">Queue</span>
-                  <span className="text-[9px] text-zinc-200 font-mono text-right">{hoveredCell.totalQueueDepth}</span>
+                  <span className="text-[9px] text-zinc-200 font-mono text-right">
+                    {hoveredCell.totalQueueDepth}
+                  </span>
                 </div>
               </div>
             </div>

@@ -15,6 +15,7 @@ import { ClusterStatus } from "./cluster-status";
 import { useNodes } from "@/hooks/useNodes";
 import { useSettings } from "@/hooks/useSettings";
 import { nodeDiscovery } from "@/lib/node-client";
+import { config } from "@/lib/config";
 import { formatNumber, formatLatency } from "@/lib/utils";
 import type { NetworkStats } from "@/lib/types";
 import { TOTAL_CELLS, DEFAULT_REPLICATION_FACTOR } from "@/lib/types";
@@ -46,6 +47,8 @@ export function Dashboard() {
     connections,
     isLoading,
     error,
+    currentNetwork,
+    setNetwork,
     addEndpoint,
     removeEndpoint,
     removeOfflineNodes,
@@ -155,6 +158,21 @@ export function Dashboard() {
           </div>
         </div>
         <div className="flex items-center gap-4">
+          <div className="hidden md:flex bg-zinc-800/50 rounded-lg p-1 border border-zinc-800">
+            {Object.values(config.networks).map((net) => (
+              <button
+                key={net.id}
+                onClick={() => setNetwork(net.id)}
+                className={`px-3 py-1 text-xs rounded-md transition-all ${
+                  currentNetwork === net.id
+                    ? "bg-[var(--sys-accent)] text-white font-medium shadow-sm"
+                    : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700/50"
+                }`}
+              >
+                {net.name}
+              </button>
+            ))}
+          </div>
           <button
             onClick={() => setShowSettings(!showSettings)}
             className={`p-2 rounded-lg transition-colors ${

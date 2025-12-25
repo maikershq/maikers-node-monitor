@@ -17,7 +17,8 @@ export class NodeDiscovery {
   private pollingInterval: NodeJS.Timeout | null = null;
   private scanInterval: NodeJS.Timeout | null = null;
   private onUpdate: ((nodes: NodeMetrics[]) => void) | null = null;
-  private registryUrl: string = config.registryUrl;
+  private registryUrl: string =
+    config.networks[config.defaultNetwork].registryUrl;
 
   constructor() {
     if (typeof window !== "undefined") {
@@ -36,7 +37,20 @@ export class NodeDiscovery {
   }
 
   setRegistryUrl(url: string) {
-    this.registryUrl = url.replace(/\/$/, "");
+    const newUrl = url.replace(/\/$/, "");
+    if (this.registryUrl !== newUrl) {
+      this.registryUrl = newUrl;
+      // Clear discovered endpoints when switching networks
+      this.discoveredEndpoints.clear();
+      this.connections.clear();
+      this.nodesByEndpoint.clear();
+      this.saveEndpoints();
+
+      // Trigger immediate refresh
+      if (this.onUpdate) {
+        this.scanForNodes();
+      }
+    }
   }
 
   getRegistryUrl(): string {

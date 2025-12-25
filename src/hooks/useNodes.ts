@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import type { NodeMetrics, TimeSeriesPoint } from "@/lib/types";
 import { nodeDiscovery, NodeConnection } from "@/lib/node-client";
+import { config, NetworkId } from "@/lib/config";
 
 interface UseNodesOptions {
   pollingIntervalMs?: number;
@@ -16,6 +17,8 @@ interface UseNodesReturn {
   connections: NodeConnection[];
   isLoading: boolean;
   error: string | null;
+  currentNetwork: NetworkId;
+  setNetwork: (networkId: NetworkId) => void;
   addEndpoint: (endpoint: string) => void;
   removeEndpoint: (endpoint: string) => void;
   removeOfflineNodes: () => number;
@@ -33,8 +36,22 @@ export function useNodes({
   const [connections, setConnections] = useState<NodeConnection[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [currentNetwork, setCurrentNetwork] = useState<NetworkId>(
+    config.defaultNetwork,
+  );
 
   const timeSeriesRef = useRef<TimeSeriesPoint[]>([]);
+
+  const setNetwork = useCallback((networkId: NetworkId) => {
+    const network = config.networks[networkId];
+    if (network) {
+      setCurrentNetwork(networkId);
+      nodeDiscovery.setRegistryUrl(network.registryUrl);
+      // Reset time series on network switch
+      timeSeriesRef.current = [];
+      setTimeSeries([]);
+    }
+  }, []);
 
   const updateTimeSeries = useCallback(
     (currentNodes: NodeMetrics[]) => {
@@ -139,6 +156,8 @@ export function useNodes({
     connections,
     isLoading,
     error,
+    currentNetwork,
+    setNetwork,
     addEndpoint,
     removeEndpoint,
     removeOfflineNodes,

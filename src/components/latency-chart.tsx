@@ -24,8 +24,15 @@ export function LatencyChart({ data }: LatencyChartProps) {
 
   return (
     <ResponsiveContainer width="100%" height="100%">
-      <LineChart data={data} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#27272a" vertical={false} />
+      <LineChart
+        data={data}
+        margin={{ top: 0, right: 0, left: -20, bottom: 0 }}
+      >
+        <CartesianGrid
+          strokeDasharray="3 3"
+          stroke="#27272a"
+          vertical={false}
+        />
         <XAxis
           dataKey="timestamp"
           tickFormatter={formatTime}
