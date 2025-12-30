@@ -26,7 +26,6 @@ import {
   ShieldCheck,
   Zap,
   Server,
-  AlertCircle,
   Loader2,
   Settings,
 } from "lucide-react";
@@ -200,14 +199,42 @@ export function Dashboard() {
         </Card>
       )}
 
-      {error && (
-        <div className="mb-6 p-4 bg-red-500/10 border border-red-500/30 rounded-xl flex items-center gap-3 animate-in">
-          <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0" />
-          <div>
-            <p className="text-sm text-red-400 font-medium">{error}</p>
-            <p className="text-xs text-red-400/70 mt-0.5">
-              Make sure nodes are running with HTTP metrics enabled on port 8080
-            </p>
+      {error && nodes.length === 0 && (
+        <div className="flex flex-col items-center justify-center py-16 animate-in">
+          <div className="relative mb-6">
+            <div className="absolute inset-0 bg-gradient-to-b from-amber-500/20 to-transparent rounded-full blur-2xl" />
+            <div className="relative w-20 h-20 rounded-2xl bg-gradient-to-br from-zinc-800 to-zinc-900 border border-zinc-700/50 flex items-center justify-center">
+              <Server className="w-8 h-8 text-zinc-500" />
+              <div className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-amber-500/20 border border-amber-500/50 flex items-center justify-center">
+                <div className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+              </div>
+            </div>
+          </div>
+          <h3 className="text-lg font-heading font-semibold text-zinc-300 mb-2">
+            Waiting for Nodes
+          </h3>
+          <p className="text-sm text-zinc-500 max-w-sm text-center mb-6">
+            No nodes found on{" "}
+            <span className="text-[var(--sys-accent)] font-medium">
+              {config.networks[currentNetwork].name}
+            </span>
+            . Nodes will appear here once they register with the registry.
+          </p>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => scanRegistry()}
+              className="px-4 py-2 bg-[var(--sys-accent)]/20 text-[var(--sys-accent)] rounded-lg text-sm hover:bg-[var(--sys-accent)]/30 transition-colors flex items-center gap-2"
+            >
+              <Loader2 className="w-3.5 h-3.5" />
+              Scan Registry
+            </button>
+            <button
+              onClick={() => setShowSettings(true)}
+              className="px-4 py-2 bg-zinc-800 text-zinc-300 rounded-lg text-sm hover:bg-zinc-700 transition-colors flex items-center gap-2"
+            >
+              <Settings className="w-3.5 h-3.5" />
+              Add Manually
+            </button>
           </div>
         </div>
       )}
@@ -350,15 +377,39 @@ export function Dashboard() {
       )}
 
       {!isLoading && nodes.length === 0 && !error && (
-        <div className="text-center py-20">
-          <Server className="w-12 h-12 text-zinc-700 mx-auto mb-4" />
-          <h3 className="text-lg font-heading font-semibold text-zinc-400 mb-2">
-            No Nodes Discovered
+        <div className="flex flex-col items-center justify-center py-16 animate-in">
+          <div className="relative mb-6">
+            <div className="absolute inset-0 bg-gradient-to-b from-[var(--sys-accent)]/10 to-transparent rounded-full blur-2xl" />
+            <div className="relative w-20 h-20 rounded-2xl bg-gradient-to-br from-zinc-800 to-zinc-900 border border-zinc-700/50 flex items-center justify-center">
+              <Server className="w-8 h-8 text-zinc-500" />
+            </div>
+          </div>
+          <h3 className="text-lg font-heading font-semibold text-zinc-300 mb-2">
+            No Nodes Yet
           </h3>
-          <p className="text-sm text-zinc-600 max-w-md mx-auto">
-            Start some nodes or add their endpoints in the settings panel to
-            begin monitoring.
+          <p className="text-sm text-zinc-500 max-w-sm text-center mb-6">
+            Start some nodes or add endpoints manually to begin monitoring the{" "}
+            <span className="text-[var(--sys-accent)] font-medium">
+              {config.networks[currentNetwork].name}
+            </span>{" "}
+            network.
           </p>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => scanRegistry()}
+              className="px-4 py-2 bg-[var(--sys-accent)]/20 text-[var(--sys-accent)] rounded-lg text-sm hover:bg-[var(--sys-accent)]/30 transition-colors flex items-center gap-2"
+            >
+              <Loader2 className="w-3.5 h-3.5" />
+              Scan Registry
+            </button>
+            <button
+              onClick={() => setShowSettings(true)}
+              className="px-4 py-2 bg-zinc-800 text-zinc-300 rounded-lg text-sm hover:bg-zinc-700 transition-colors flex items-center gap-2"
+            >
+              <Settings className="w-3.5 h-3.5" />
+              Add Manually
+            </button>
+          </div>
         </div>
       )}
     </div>
