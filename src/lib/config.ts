@@ -15,7 +15,7 @@ export const config = {
         "https://registry-devnet.maikers.com",
     },
   },
-  defaultNetwork: "devnet" as const,
+  defaultNetwork: "mainnet" as const,
 } as const;
 
 export type NetworkId = keyof typeof config.networks;

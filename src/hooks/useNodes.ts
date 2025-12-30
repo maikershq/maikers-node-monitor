@@ -5,6 +5,27 @@ import type { NodeMetrics, TimeSeriesPoint } from "@/lib/types";
 import { nodeDiscovery, NodeConnection } from "@/lib/node-client";
 import { config, NetworkId } from "@/lib/config";
 
+function getNetworkFromUrl(): NetworkId {
+  if (typeof window === "undefined") return config.defaultNetwork;
+  const params = new URLSearchParams(window.location.search);
+  const network = params.get("network");
+  if (network && network in config.networks) {
+    return network as NetworkId;
+  }
+  return config.defaultNetwork;
+}
+
+function updateUrlNetwork(networkId: NetworkId) {
+  if (typeof window === "undefined") return;
+  const url = new URL(window.location.href);
+  if (networkId === config.defaultNetwork) {
+    url.searchParams.delete("network");
+  } else {
+    url.searchParams.set("network", networkId);
+  }
+  window.history.replaceState({}, "", url.toString());
+}
+
 interface UseNodesOptions {
   pollingIntervalMs?: number;
   registryScanIntervalMs?: number;
@@ -41,12 +62,26 @@ export function useNodes({
   );
 
   const timeSeriesRef = useRef<TimeSeriesPoint[]>([]);
+  const initializedRef = useRef(false);
+
+  // Initialize network from URL on mount
+  useEffect(() => {
+    if (initializedRef.current) return;
+    initializedRef.current = true;
+
+    const urlNetwork = getNetworkFromUrl();
+    if (urlNetwork !== config.defaultNetwork) {
+      setCurrentNetwork(urlNetwork);
+      nodeDiscovery.setRegistryUrl(config.networks[urlNetwork].registryUrl);
+    }
+  }, []);
 
   const setNetwork = useCallback((networkId: NetworkId) => {
     const network = config.networks[networkId];
     if (network) {
       setCurrentNetwork(networkId);
       nodeDiscovery.setRegistryUrl(network.registryUrl);
+      updateUrlNetwork(networkId);
       // Reset time series on network switch
       timeSeriesRef.current = [];
       setTimeSeries([]);
