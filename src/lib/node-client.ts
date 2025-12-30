@@ -21,19 +21,7 @@ export class NodeDiscovery {
     config.networks[config.defaultNetwork].registryUrl;
 
   constructor() {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("discoveredEndpoints");
-      if (saved) {
-        try {
-          const endpoints = JSON.parse(saved);
-          if (Array.isArray(endpoints)) {
-            endpoints.forEach((ep) => this.discoveredEndpoints.add(ep));
-          }
-        } catch (e) {
-          console.warn("Failed to load saved endpoints", e);
-        }
-      }
-    }
+    // Don't load from cache - always fetch fresh from registry on page load
   }
 
   setRegistryUrl(url: string) {
@@ -44,7 +32,6 @@ export class NodeDiscovery {
       this.discoveredEndpoints.clear();
       this.connections.clear();
       this.nodesByEndpoint.clear();
-      this.saveEndpoints();
 
       // Trigger immediate refresh
       if (this.onUpdate) {
@@ -62,7 +49,6 @@ export class NodeDiscovery {
 
     if (!this.discoveredEndpoints.has(normalized)) {
       this.discoveredEndpoints.add(normalized);
-      this.saveEndpoints();
       await this.refreshNodes();
     }
   }
@@ -71,7 +57,6 @@ export class NodeDiscovery {
     this.discoveredEndpoints.delete(endpoint);
     this.connections.delete(endpoint);
     this.nodesByEndpoint.delete(endpoint);
-    this.saveEndpoints();
     if (this.onUpdate) {
       this.refreshNodes();
     }
@@ -92,11 +77,8 @@ export class NodeDiscovery {
       this.nodesByEndpoint.delete(endpoint);
     });
 
-    if (offlineEndpoints.length > 0) {
-      this.saveEndpoints();
-      if (this.onUpdate) {
-        this.refreshNodes();
-      }
+    if (offlineEndpoints.length > 0 && this.onUpdate) {
+      this.refreshNodes();
     }
 
     return offlineEndpoints.length;
@@ -105,15 +87,6 @@ export class NodeDiscovery {
   getOfflineCount(): number {
     return Array.from(this.connections.values()).filter((c) => !c.connected)
       .length;
-  }
-
-  private saveEndpoints() {
-    if (typeof window !== "undefined") {
-      localStorage.setItem(
-        "discoveredEndpoints",
-        JSON.stringify(Array.from(this.discoveredEndpoints)),
-      );
-    }
   }
 
   async scanForNodes(): Promise<void> {
@@ -131,6 +104,7 @@ export class NodeDiscovery {
       const response = await fetch(`${this.registryUrl}/nodes`, {
         signal: controller.signal,
         headers: { Accept: "application/json" },
+        cache: "no-store",
       });
 
       clearTimeout(timeout);
@@ -169,12 +143,7 @@ export class NodeDiscovery {
 
         if (resolved && !this.discoveredEndpoints.has(resolved)) {
           this.discoveredEndpoints.add(resolved);
-          added = true;
         }
-      }
-
-      if (added) {
-        this.saveEndpoints();
       }
     } catch (err) {
       console.warn("Failed to fetch from registry:", err);
@@ -258,6 +227,7 @@ export class NodeDiscovery {
       const response = await fetch(`${url}/metrics`, {
         signal: controller.signal,
         headers: { Accept: "application/json" },
+        cache: "no-store",
       });
 
       clearTimeout(timeout);
