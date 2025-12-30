@@ -12,7 +12,7 @@ export const config = {
       name: "Devnet",
       registryUrl:
         process.env.NEXT_PUBLIC_DEVNET_REGISTRY_URL ||
-        "https://registry.devnet.maikers.com",
+        "https://registry-devnet.maikers.com",
     },
   },
   defaultNetwork: "mainnet" as const,
