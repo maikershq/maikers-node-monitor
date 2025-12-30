@@ -57,7 +57,6 @@ export function SettingsPanel({
 }: SettingsPanelProps) {
   const [newEndpoint, setNewEndpoint] = useState("");
   const [isAddingEndpoint, setIsAddingEndpoint] = useState(false);
-  const [registryInput, setRegistryInput] = useState(settings.registryUrl);
   const [isScanning, setIsScanning] = useState(false);
 
   const offlineCount = connections.filter((c) => !c.connected).length;
@@ -77,16 +76,9 @@ export function SettingsPanel({
     }
   };
 
-  const handleRegistrySubmit = () => {
-    const trimmed = registryInput.trim();
-    if (trimmed && trimmed !== settings.registryUrl) {
-      onSettingsChange({ registryUrl: trimmed });
-    }
-  };
-
   return (
     <div className={twMerge("space-y-6", className)}>
-      {/* Registry URL */}
+      {/* Scan Registry */}
       <section>
         <div className="flex items-center gap-2 mb-3">
           <Globe className="w-3.5 h-3.5 text-[var(--sys-accent)]" />
@@ -94,29 +86,18 @@ export function SettingsPanel({
             Registry
           </span>
         </div>
-        <div className="flex gap-2">
-          <input
-            type="text"
-            value={registryInput}
-            onChange={(e) => setRegistryInput(e.target.value)}
-            onBlur={handleRegistrySubmit}
-            onKeyDown={(e) => e.key === "Enter" && handleRegistrySubmit()}
-            placeholder="https://registry.maikers.com"
-            className="flex-1 bg-zinc-900/80 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-[var(--sys-accent)]/50 font-mono"
+        <button
+          onClick={handleScanRegistry}
+          disabled={isScanning}
+          className="px-3 py-2 bg-[var(--sys-accent)]/20 text-[var(--sys-accent)] rounded-lg text-xs hover:bg-[var(--sys-accent)]/30 transition-colors disabled:opacity-50 flex items-center gap-1.5"
+        >
+          <RefreshCw
+            className={twMerge("w-3 h-3", isScanning && "animate-spin")}
           />
-          <button
-            onClick={handleScanRegistry}
-            disabled={isScanning}
-            className="px-3 py-2 bg-[var(--sys-accent)]/20 text-[var(--sys-accent)] rounded-lg text-xs hover:bg-[var(--sys-accent)]/30 transition-colors disabled:opacity-50 flex items-center gap-1.5"
-          >
-            <RefreshCw
-              className={twMerge("w-3 h-3", isScanning && "animate-spin")}
-            />
-            Scan
-          </button>
-        </div>
+          Scan for Nodes
+        </button>
         <p className="text-[10px] text-zinc-600 mt-1.5">
-          Nodes discovered from registry will be added automatically
+          Network is selected using the switcher in the header
         </p>
       </section>
 

@@ -33,13 +33,7 @@ import {
 
 export function Dashboard() {
   const [showSettings, setShowSettings] = useState(false);
-  const { settings, updateSettings, resetSettings, isLoaded } = useSettings();
-
-  useEffect(() => {
-    if (isLoaded) {
-      nodeDiscovery.setRegistryUrl(settings.registryUrl);
-    }
-  }, [settings.registryUrl, isLoaded]);
+  const { settings, updateSettings, resetSettings } = useSettings();
 
   const {
     nodes,

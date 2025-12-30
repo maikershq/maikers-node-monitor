@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback } from "react";
 
 export interface MonitorSettings {
-  registryUrl: string;
   refreshRateMs: number;
   registryScanIntervalMs: number;
   hideOfflineNodes: boolean;
@@ -12,8 +11,6 @@ export interface MonitorSettings {
 const STORAGE_KEY = "maikers-monitor-settings";
 
 const DEFAULT_SETTINGS: MonitorSettings = {
-  registryUrl:
-    process.env.NEXT_PUBLIC_REGISTRY_URL || "https://registry.maikers.com",
   refreshRateMs: 5000,
   registryScanIntervalMs: 60000,
   hideOfflineNodes: false,
