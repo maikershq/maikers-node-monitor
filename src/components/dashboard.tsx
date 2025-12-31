@@ -30,8 +30,12 @@ import {
   Settings,
 } from "lucide-react";
 
-export function Dashboard() {
-  const [showSettings, setShowSettings] = useState(false);
+interface DashboardProps {
+  showSettings?: boolean;
+}
+
+export function Dashboard({ showSettings: settingsEnabled = false }: DashboardProps) {
+  const [showSettingsPanel, setShowSettingsPanel] = useState(false);
   const { settings, updateSettings, resetSettings } = useSettings();
 
   const {
@@ -166,23 +170,25 @@ export function Dashboard() {
               </button>
             ))}
           </div>
-          <button
-            onClick={() => setShowSettings(!showSettings)}
-            className={`p-2 rounded-lg transition-colors ${
-              showSettings
-                ? "bg-[var(--sys-accent)]/20 text-[var(--sys-accent)]"
-                : "text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800"
-            }`}
-          >
-            <Settings className="w-4 h-4" />
-          </button>
+          {settingsEnabled && (
+            <button
+              onClick={() => setShowSettingsPanel(!showSettingsPanel)}
+              className={`p-2 rounded-lg transition-colors ${
+                showSettingsPanel
+                  ? "bg-[var(--sys-accent)]/20 text-[var(--sys-accent)]"
+                  : "text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800"
+              }`}
+            >
+              <Settings className="w-4 h-4" />
+            </button>
+          )}
           <div className="text-[10px] text-zinc-600 font-mono tabular-nums">
             {new Date().toLocaleTimeString()}
           </div>
         </div>
       </header>
 
-      {showSettings && (
+      {settingsEnabled && showSettingsPanel && (
         <Card className="monitor-card mb-6 animate-in">
           <CardContent className="p-4">
             <SettingsPanel
@@ -228,13 +234,15 @@ export function Dashboard() {
               <Loader2 className="w-3.5 h-3.5" />
               Scan Registry
             </button>
-            <button
-              onClick={() => setShowSettings(true)}
-              className="px-4 py-2 bg-zinc-800 text-zinc-300 rounded-lg text-sm hover:bg-zinc-700 transition-colors flex items-center gap-2"
-            >
-              <Settings className="w-3.5 h-3.5" />
-              Add Manually
-            </button>
+            {settingsEnabled && (
+              <button
+                onClick={() => setShowSettingsPanel(true)}
+                className="px-4 py-2 bg-zinc-800 text-zinc-300 rounded-lg text-sm hover:bg-zinc-700 transition-colors flex items-center gap-2"
+              >
+                <Settings className="w-3.5 h-3.5" />
+                Add Manually
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -402,13 +410,15 @@ export function Dashboard() {
               <Loader2 className="w-3.5 h-3.5" />
               Scan Registry
             </button>
-            <button
-              onClick={() => setShowSettings(true)}
-              className="px-4 py-2 bg-zinc-800 text-zinc-300 rounded-lg text-sm hover:bg-zinc-700 transition-colors flex items-center gap-2"
-            >
-              <Settings className="w-3.5 h-3.5" />
-              Add Manually
-            </button>
+            {settingsEnabled && (
+              <button
+                onClick={() => setShowSettingsPanel(true)}
+                className="px-4 py-2 bg-zinc-800 text-zinc-300 rounded-lg text-sm hover:bg-zinc-700 transition-colors flex items-center gap-2"
+              >
+                <Settings className="w-3.5 h-3.5" />
+                Add Manually
+              </button>
+            )}
           </div>
         </div>
       )}
